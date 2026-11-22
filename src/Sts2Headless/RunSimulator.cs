@@ -3788,70 +3788,58 @@ public class RunSimulator
         var currentCoord = _runState.CurrentMapCoord;
         var visited = _runState.VisitedMapCoords;
 
+        static Dictionary<string, int> Coord(MapCoord position) => new()
+        {
+            ["col"] = position.col, ["row"] = position.row,
+        };
+
+        Dictionary<string, object?> SerializePoint(MapPoint point) => new()
+        {
+            ["col"] = (int)point.coord.col,
+            ["row"] = (int)point.coord.row,
+            ["type"] = point.PointType.ToString(),
+            ["children"] = point.Children?.Select(child => Coord(child.coord)).ToArray(),
+            ["visited"] = visited?.Contains(point.coord) ?? false,
+            ["current"] = currentCoord.HasValue && currentCoord.Value.Equals(point.coord),
+        };
+
         for (int row = 0; row < map.GetRowCount(); row++)
         {
             var rowNodes = new List<Dictionary<string, object?>>();
             foreach (var point in map.GetPointsInRow(row))
             {
-                if (point == null) continue;
-                var children = point.Children?.Select(ch => new Dictionary<string, object?>
-                {
-                    ["col"] = (int)ch.coord.col,
-                    ["row"] = (int)ch.coord.row,
-                }).ToList();
-
-                var isVisited = visited?.Any(v => v.col == point.coord.col && v.row == point.coord.row) ?? false;
-                var isCurrent = currentCoord.HasValue &&
-                    currentCoord.Value.col == point.coord.col && currentCoord.Value.row == point.coord.row;
-
-                rowNodes.Add(new Dictionary<string, object?>
-                {
-                    ["col"] = (int)point.coord.col,
-                    ["row"] = (int)point.coord.row,
-                    ["type"] = point.PointType.ToString(),
-                    ["children"] = children,
-                    ["visited"] = isVisited,
-                    ["current"] = isCurrent,
-                });
+                if (point != null) rowNodes.Add(SerializePoint(point));
             }
             if (rowNodes.Count > 0)
                 rows.Add(rowNodes);
         }
 
-        // Boss node
-        var bossNode = new Dictionary<string, object?>
+        Dictionary<string, object?> SerializeBoss(MapPoint point, string? id)
         {
-            ["col"] = (int)map.BossMapPoint.coord.col,
-            ["row"] = (int)map.BossMapPoint.coord.row,
-            ["type"] = map.BossMapPoint.PointType.ToString(),
-        };
-
-        // Add boss name/id — use BossEncounter?.Id?.Entry
-        try
-        {
-            var bossIdEntry = _runState.Act?.BossEncounter?.Id?.Entry;
-            if (!string.IsNullOrEmpty(bossIdEntry))
+            var node = SerializePoint(point);
+            if (!string.IsNullOrEmpty(id))
             {
-                var monsterKey = bossIdEntry.EndsWith("_BOSS") ? bossIdEntry[..^5] : bossIdEntry;
+                var monsterKey = id.EndsWith("_BOSS") ? id[..^5] : id;
                 if (monsterKey == "THE_KIN") monsterKey = "KIN_PRIEST";
-                bossNode["id"] = bossIdEntry;
-                bossNode["name"] = _loc.Monster(monsterKey);
+                node["id"] = id;
+                node["name"] = _loc.Monster(monsterKey);
             }
+            return node;
         }
-        catch { }
 
         return new Dictionary<string, object?>
         {
             ["type"] = "map",
             ["context"] = RunContext(),
             ["rows"] = rows,
-            ["boss"] = bossNode,
+            ["column_count"] = map.GetColumnCount(),
+            ["start"] = SerializePoint(map.StartingMapPoint),
+            ["boss"] = SerializeBoss(map.BossMapPoint, _runState.Act?.BossEncounter?.Id?.Entry),
+            ["second_boss"] = map.SecondBossMapPoint is { } second
+                ? SerializeBoss(second, _runState.Act?.SecondBossEncounter?.Id?.Entry) : null,
             ["ancient_id"] = _runState.Act?.Ancient?.Id.Entry,
-            ["current_coord"] = currentCoord.HasValue ? new Dictionary<string, object?>
-            {
-                ["col"] = (int)currentCoord.Value.col,
-                ["row"] = (int)currentCoord.Value.row,
-            } : null,
+            ["visited_path"] = visited?.Select(Coord).ToArray(),
+            ["current_coord"] = currentCoord.HasValue ? Coord(currentCoord.Value) : null,
         };
     }
 

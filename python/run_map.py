@@ -1,13 +1,26 @@
 """Read archived chapters and render their paths in the desktop launcher."""
 
 import json
+from math import hypot
 from tkinter import Canvas, ttk
+from typing import NamedTuple
 
 
 KINDS = {"monster": "battle", "elite": "elite", "boss": "boss", "restsite": "rest",
          "shop": "shop", "treasure": "chest", "event": "event", "unknown": "event", "ancient": "start"}
 COLORS = {"battle": "#F29F95", "elite": "#F0AA7E", "boss": "#F8D393", "chest": "#F5CB7E",
           "rest": "#E3B9F5", "shop": "#9CCAF4", "event": "#A7B8DC", "start": "#9EDCCA"}
+
+
+class Chapter(NamedTuple):
+    name: object
+    full: bool
+    nodes: dict
+    edges: list
+    art: dict
+    columns: int
+    current: tuple | None
+    special_art: dict
 
 
 def coordinate(value):
@@ -34,7 +47,7 @@ def scene_records(folder):
 def read_chapters(folder, records):
     if not folder:
         return {}
-    snapshots, visited = {}, {}
+    snapshots, visited, traces = {}, {}, {}
     pending = None
     for record in records(folder):
         data = record.get("data")
@@ -52,6 +65,8 @@ def read_chapters(folder, records):
         if data.get("type") == "map" and isinstance(data.get("rows"), list) and data["rows"]:
             snapshots[act] = data
             position = coordinate(data.get("current_coord"))
+            if isinstance(data.get("visited_path"), list):
+                traces[act] = [point for item in data["visited_path"] if (point := coordinate(item)) is not None]
         elif data.get("decision"):
             position = coordinate(ctx.get("map_coord")) or pending
         else:
@@ -59,6 +74,9 @@ def read_chapters(folder, records):
             continue
         if position and type(ctx.get("floor")) is int:
             visited.setdefault(act, {})[position] = ctx["floor"]
+            trace = traces.setdefault(act, [])
+            if not trace or trace[-1] != position:
+                trace.append(position)
         pending = None
 
     scenes = scene_records(folder)
@@ -68,16 +86,17 @@ def read_chapters(folder, records):
         nodes, edges = {}, set()
         floors = visited.get(act, {})
         rooms = {data["floor"]: (path, data) for path, data in scenes.get(act, [])}
-        rows = [item for row in snapshot.get("rows", []) if isinstance(row, list) for item in row]
-        boss = snapshot.get("boss")
-        if coordinate(boss) not in {coordinate(item) for item in rows}:
-            rows.append(boss)
-        for item in rows:
-            point = coordinate(item)
-            if point is None:
-                continue
+        raw = {point: item for row in snapshot.get("rows", []) if isinstance(row, list)
+               for item in row if (point := coordinate(item)) is not None}
+        specials = (snapshot.get("start"), snapshot.get("boss"), snapshot.get("second_boss"))
+        for item in specials:
+            if (point := coordinate(item)) is not None:
+                raw[point] = {**raw.get(point, {}), **item}
+        trace = [point for point in traces.get(act, ()) if point in raw]
+        traveled = set(trace)
+        for point, item in raw.items():
             floor = floors.get(point, point[1] + 1)
-            logged = point in floors or item.get("visited") is True or item.get("current") is True
+            logged = point in traveled or item.get("visited") is True or item.get("current") is True
             scene_path, scene = rooms.get(floor, (None, {})) if logged else (None, {})
             kind = item.get("type")
             room = KINDS.get(kind.casefold(), "event") if isinstance(kind, str) else "event"
@@ -91,14 +110,25 @@ def read_chapters(folder, records):
                 nodes[0, index] = (scene["room"], scene["floor"], True, path)
                 if index:
                     edges.add(((0, index - 1), (0, index)))
-        route = sorted((point for point, node in nodes.items() if node[2]), key=lambda point: (point[1], point[0]))
+        # A legacy archive may start midway through an act with only visit flags for earlier rooms.
+        first_row = trace[0][1] if trace else float("inf")
+        earlier = sorted((point for point, node in nodes.items() if node[2] and point not in traveled
+                          and point[1] < first_row), key=lambda point: (point[1], point[0]))
+        route = earlier + trace
         actual = set(zip(route, route[1:]))
         name = snapshot.get("context", {}).get("act_name")
+        boss = snapshot.get("boss")
         boss_id = boss.get("id") if isinstance(boss, dict) and isinstance(boss.get("id"), str) else None
         ancient_id = snapshot.get("ancient_id")
         art = {"boss": boss_id, "start": ancient_id if isinstance(ancient_id, str) else None}
-        chapters[act] = (name, full, nodes,
-                         [(p, q, (p, q) in actual) for p, q in sorted(edges) if p in nodes and q in nodes], art)
+        special_art = {point: item.get("id") for item in specials[1:]
+                       if (point := coordinate(item)) is not None and isinstance(item.get("id"), str)}
+        columns = snapshot.get("column_count")
+        minimum_columns = max((col for col, _ in nodes), default=0) + 1
+        columns = max(columns, minimum_columns) if type(columns) is int and 0 < columns <= 31 else minimum_columns
+        chapters[act] = Chapter(name, full, nodes,
+                                [(p, q, (p, q) in actual) for p, q in sorted(edges) if p in nodes and q in nodes],
+                                art, columns, route[-1] if route else None, special_art)
     return chapters
 
 
@@ -215,37 +245,29 @@ class RunMap:
         if width < 100 or height < 50:
             return
         chapter = self.chapters.get(self.act)
-        if not chapter or not chapter[2]:
+        if not chapter or not chapter.nodes:
             view.create_text(width / 2, height / 2, text=self.text("map_empty"), fill="#AAC0B5",
                              font=self.launcher.fonts["body"], width=width - 30)
             view.configure(scrollregion=(0, 0, width, height))
             return
-        _, full, nodes, edges, _ = chapter
-        columns, rows = sorted({col for col, _ in nodes}), sorted({row for _, row in nodes})
-        content_height = max(height, 34 * len(rows) + 49)
-        pitch = min(72, (content_height - 60) / max(1, len(rows) - 1))
-        side = min(95, max(55, int(width * .12)))
-        xs = {col: side + (width - 2 * side) * i / max(1, len(columns) - 1) for i, col in enumerate(columns)}
-        top = max(30, (content_height - pitch * (len(rows) - 1)) / 2)
-        ys = {row: top + pitch * i for i, row in enumerate(reversed(rows))}
-        positions = {p: (xs[p[0]] if len(columns) > 1 else width / 2, ys[p[1]]) for p in nodes}
+        nodes, edges = chapter.nodes, chapter.edges
+        rows = {row for _, row in nodes}
+        first, last = min(rows), max(rows)
+        step_y = 43
+        content_height = max(height, step_y * (last - first) + 88)
+        step_x = min(68, max(0, width - 98) / max(1, chapter.columns - 1))
+        top = (content_height - step_y * (last - first)) / 2
+        ys = {row: top + step_y * (last - row) for row in rows}
+        positions = {(col, row): (width / 2 + (col - (chapter.columns - 1) / 2) * step_x, ys[row])
+                     for col, row in nodes}
         view.configure(scrollregion=(0, 0, width, content_height))
-        for band, row in enumerate(rows):
-            floor = row + 1 if full else nodes[0, row][1]
-            if band % 2:
-                view.create_rectangle(0, ys[row] - pitch / 2, width, ys[row] + pitch / 2, fill="#202B28", outline="")
+        for row in sorted(rows):
+            floor = row if chapter.full else nodes[0, row][1]
             view.create_text(22, ys[row], text=str(floor), fill="#A4B8AD", font=self.launcher.fonts["small"])
-            view.create_line(43, ys[row], width - 22, ys[row], fill="#2B3A35")
+            view.create_line(44, ys[row], width - 28, ys[row], fill="#273631")
         for left, right, reached in sorted(edges, key=lambda edge: edge[2]):
-            x1, y1 = positions[left]
-            x2, y2 = positions[right]
-            middle = (y1 + y2) / 2
-            curve = (x1, y1, x1, middle, x2, middle, x2, y2)
-            if reached:
-                view.create_line(*curve, smooth=True, fill="#3E6454", width=8)
-            view.create_line(*curve, smooth=True, fill="#C9EEAB" if reached else "#526C64",
-                             width=3 if reached else 1, dash=() if reached else (3, 4))
-        current = max((point for point, node in nodes.items() if node[2]), key=lambda point: point[1], default=None)
+            self.draw_path(positions[left], positions[right], reached)
+        current = chapter.current
         for point, (room, _, reached, _) in nodes.items():
             x, y = positions[point]
             tag = f"room_{point[0]}_{point[1]}"
@@ -256,7 +278,7 @@ class RunMap:
                 view.create_oval(x-17, y-17, x+17, y+17, outline=ring, width=2, tags=tag)
             view.create_oval(x-radius, y-radius, x+radius, y+radius, fill="#2E423A" if reached else "#23312D",
                              width=2 if reached else 1, outline=outline, tags=tag)
-            self.icon(room, x, y, tag, scale=1.2)
+            self.icon(room, x, y, tag, scale=1.2, detail=chapter.special_art.get(point))
             view.tag_bind(tag, "<Button-1>", lambda _event, point=point: self.select_node(point))
             view.tag_bind(tag, "<Enter>", lambda _event: view.configure(cursor="hand2"))
             view.tag_bind(tag, "<Leave>", lambda _event: view.configure(cursor=""))
@@ -267,6 +289,17 @@ class RunMap:
             else:
                 view.yview_moveto(0)
             self.focus_route = False
+
+    def draw_path(self, start, end, reached):
+        x, y = start
+        dx, dy = end[0] - x, end[1] - y
+        length = hypot(dx, dy)
+        if length <= 32:
+            return
+        gap = 16 / length
+        self.canvas.create_line(x + dx * gap, y + dy * gap, end[0] - dx * gap, end[1] - dy * gap,
+                                fill="#C9EEAB" if reached else "#667F75", width=3 if reached else 2,
+                                dash=(2, 5), capstyle="round", tags="route" if reached else "path")
 
     def draw_legend(self, _event=None):
         view = self.legend
@@ -285,10 +318,10 @@ class RunMap:
             view.create_text(x + 12, y, text=label, fill="#AAC0B5", font=font, anchor="w")
             x += size
 
-    def icon(self, room, x, y, tag, canvas=None, scale=1):
+    def icon(self, room, x, y, tag, canvas=None, scale=1, detail=None):
         canvas, color = canvas or self.canvas, COLORS[room]
         chapter = self.chapters.get(self.act)
-        detail = chapter[4].get(room) if chapter else None
+        detail = detail or (chapter.art.get(room) if chapter else None)
         edge = 25 if scale > 1 else 15
         image = self.launcher.art.room_icon(room, detail, (edge, edge))
         if image:
