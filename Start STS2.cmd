@@ -10,4 +10,5 @@ if not exist "%~dp0runtime\python\pythonw.exe" (
 set "PYTHONHOME=%~dp0runtime\python"
 set "PYTHONPATH="
 set "PYTHONNOUSERSITE=1"
+set "DOTNET_CLI_TELEMETRY_OPTOUT=1"
 start "" "%~dp0runtime\python\pythonw.exe" -B -X utf8 "%~dp0STS2 Launcher.pyw"

@@ -12,17 +12,17 @@ A Windows desktop launcher for [sts2-cli](https://github.com/wuhao21/sts2-cli). 
 2. Extract the entire ZIP into a writable folder and double-click `Start STS2.cmd`.
 3. Choose **Manual** or **AI play** and select **Start run**. On the first run, the launcher locates your Steam game automatically. If it asks for a folder, select the installed game folder.
 
-The ZIP includes Python and .NET. Manual play needs no API key. For AI play, save your provider key in **API settings** under the gear menu and select a model in **Persona panel**. The launcher can download the provider's Python client on first use, which requires an internet connection.
+The ZIP includes Python and .NET. With the Steam game installed, manual play, saves, maps, and analysis work offline. For AI play, save your provider key in **API settings** under the gear menu and select a model in **Persona panel**. AI play, model refresh, and installing a missing AI client require an internet connection.
 
 ![English launcher showing the selected AI persona, speaking language, and model](docs/screenshots/launcher-en.png)
 
 ## Features
 
-- **Personas and languages.** Save a model, speaking style, and output language per persona. The interface and AI commentary each offer 17 languages and can be set independently.
+- **Personas and languages.** Save a model, speaking style, and output language per persona. The desktop menus in `STS2 Languages.json` and AI commentary each offer 17 language choices. The game adapter currently reads English and Simplified Chinese game text from `localization_eng` and `localization_zhs`.
 - **Local saves.** Detect or set a save folder from the gear menu, then select a save on the launch page.
 - **AI chat and run history.** Expand either view from the sidebar. Each run has its own archive, with separate folders for encounters, chests, rest sites, and other rooms.
 - **Run maps.** Switch between runs and acts. The scrollable map follows the engine's room connections. Bold lines trace the traveled route and bright rings mark visited rooms. Select a visited room to open its record.
-- **Game icons.** Room, character, and status icons are read from your Steam install. Deck badges vary by card pool, rarity, and type. Opening the deck fetches and caches available [Huiji Wiki card badges](https://sts2.huijiwiki.com/wiki/%E5%8D%A1%E7%89%8C%E5%AF%BC%E8%88%AA). Built-in symbols are available offline.
+- **Game icons.** The launcher reads map, character, status, and card art from the local Steam install. Each card can show its own artwork inside a badge styled by pool, rarity, and type. The analysis and map views make no icon downloads.
 - **Character and run analysis.** The top panel shows the portrait, HP, recent health changes, gold, block, potions, and combat energy when recorded. Expand Deck or Relics to see their icons and quantities. Historical charts appear below.
 
 ## Screenshots

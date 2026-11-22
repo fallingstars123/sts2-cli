@@ -20,7 +20,6 @@ from tkinter import filedialog, font, messagebox, ttk
 import traceback
 from types import SimpleNamespace
 from uuid import uuid4
-import webbrowser
 
 
 LAUNCHER = Path(__file__).resolve()
@@ -90,7 +89,6 @@ TEXT = {
         "map_open_room": "查看房间记录",
         "map_empty": "此对局暂无地图记录。",
         "about": "关于",
-        "wiki": "角色百科",
         "latest_hp": "最近记录血量",
         "live_hp": "实时血量",
         "inventory_deck": "牌组",
@@ -207,7 +205,6 @@ TEXT = {
         "map_open_room": "Open room record",
         "map_empty": "There is no recorded map for this run.",
         "about": "About",
-        "wiki": "Character wiki",
         "latest_hp": "Last recorded HP",
         "live_hp": "Live HP",
         "inventory_deck": "Deck",
@@ -587,11 +584,22 @@ def configure_theme(root):
     style.configure("TEntry", padding=(9, 6), foreground=TEXT_COLOR, fieldbackground=FIELD,
                     insertcolor=TEXT_COLOR, bordercolor=BORDER, lightcolor=FIELD, darkcolor=FIELD)
     style.map("TEntry", bordercolor=[("focus", ACCENT)])
+    mark_size = round(root.winfo_fpixels("7.5p"))
+    mark_width = mark_size + round(root.winfo_fpixels("4p"))
+    unchecked = tk.PhotoImage(master=root, width=mark_width, height=mark_size)
+    unchecked.put(BORDER, to=(0, 0, mark_size, mark_size))
+    unchecked.put(FIELD, to=(1, 1, mark_size - 1, mark_size - 1))
+    checked = tk.PhotoImage(master=root, width=mark_width, height=mark_size)
+    checked.put(ACCENT, to=(0, 0, mark_size, mark_size))
+    root.checkbutton_images = (unchecked, checked)
+    style.element_create("Checkbutton.status", "image", unchecked, ("selected", checked), sticky="")
+    style.layout("TCheckbutton", [("Checkbutton.padding", {"sticky": "nswe", "children": [
+        ("Checkbutton.status", {"side": "left", "sticky": ""}),
+        ("Checkbutton.focus", {"side": "left", "sticky": "w", "children": [
+            ("Checkbutton.label", {"sticky": "nswe"})]})]})])
     style.configure("TCheckbutton", font=fonts["small"], foreground=MUTED, background=PANEL,
-                    indicatorbackground=FIELD, indicatorforeground=BACKGROUND,
-                    bordercolor=BORDER, lightcolor=PANEL, darkcolor=PANEL, padding=(0, 4))
-    style.map("TCheckbutton", background=[("active", PANEL)],
-              indicatorbackground=[("selected", ACCENT)])
+                    focuscolor=TEXT_COLOR, padding=(0, 4))
+    style.map("TCheckbutton", background=[("active", PANEL)])
     style.configure("History.Treeview", background=PANEL, fieldbackground=PANEL, foreground=TEXT_COLOR,
                     font=fonts["small"], rowheight=TREE_ROW_HEIGHT, borderwidth=0, bordercolor=BORDER,
                     lightcolor=PANEL, darkcolor=PANEL)
@@ -625,7 +633,6 @@ class RunInventory:
         self.sections = {}
         self.expanded = set()
         self.player = {}
-        self.polling = False
         area = ttk.Frame(parent)
         area.pack(fill="x", pady=(7, 0))
         area.grid_columnconfigure((0, 1), weight=1, uniform="inventory")
@@ -669,7 +676,6 @@ class RunInventory:
     def update(self, player):
         self.player = player
         art = self.launcher.art
-        wiki = art.wiki_cards
         language = engine_language(self.launcher.language)
         for kind, (_, _, table) in self.sections.items():
             items = player.get(kind)
@@ -698,30 +704,20 @@ class RunInventory:
                     properties = [item.get(key) for key in ("pool", "rarity", "type")]
                     variant = art.card_variant(identifier, *(value if isinstance(value, str) else "" for value in properties))
                 rows[identifier, label, variant] += 1
-            if kind == "deck":
-                wiki.request(variant for _, _, variant in rows)
-            signature = (self.launcher.language, tuple(rows.items()), wiki.revision if kind == "deck" else None)
+            signature = (self.launcher.language, tuple(rows.items()))
             if self.signatures.get(kind) == signature:
                 continue
             self.signatures[kind] = signature
             scroll = table.yview()[0]
             table.delete(*table.get_children())
             for (identifier, label, variant), copies in rows.items():
-                icon = art.card_icon(variant, (22, 23)) if variant else art.relic_icon(identifier, (22, 22))
+                icon = art.card_icon(identifier, variant, (24, 25)) if variant else art.relic_icon(identifier, (22, 22))
                 table.insert("", "end", text=label if icon else "◇  " + label,
                              image=icon or "", values=(f"×{copies}",))
             if not rows:
                 table.insert("", "end", text=self.launcher.text("inventory_empty"))
             table.configure(height=min(5, max(1, len(rows))))
             table.yview_moveto(scroll)
-        if wiki.pending and not self.polling:
-            self.polling = True
-            self.launcher.root.after(120, self.poll_cards)
-
-    def poll_cards(self):
-        self.polling = False
-        self.launcher.art.wiki_cards.poll()
-        self.update(self.player)
 
 
 class RunAnalysis:
@@ -744,13 +740,8 @@ class RunAnalysis:
         self.portrait_view.pack(side="left", padx=(0, 15))
         card = ttk.Frame(player, style="Panel.TFrame")
         card.pack(side="left", fill="both", expand=True)
-        name_row = ttk.Frame(card, style="Panel.TFrame")
-        name_row.pack(fill="x")
-        self.player_name = ttk.Label(name_row, style="PlayerName.TLabel")
-        self.player_name.pack(side="left")
-        self.wiki = tk.Label(name_row, bg=PANEL, fg=BLUE, font=launcher.fonts["small"], cursor="hand2")
-        self.wiki.pack(side="right")
-        self.wiki.bind("<Button-1>", self.open_wiki)
+        self.player_name = ttk.Label(card, style="PlayerName.TLabel")
+        self.player_name.pack(anchor="w")
         self.player_progress = ttk.Label(card, style="Caption.TLabel", compound="left")
         self.player_progress.pack(anchor="w")
         health_row = ttk.Frame(card, style="Panel.TFrame")
@@ -896,7 +887,6 @@ class RunAnalysis:
             badge.configure(text=f"  {self.text('resource_' + key)}  {value}",
                             image=art.resource_icon(key, self.character, (16, 16)) or "")
             badge.grid()
-        self.wiki.configure(text=self.text("wiki") if self.character else "", cursor="hand2" if self.character else "")
         photo = self.player_portrait(self.character)
         self.portrait_view.delete("all")
         if photo:
@@ -924,16 +914,6 @@ class RunAnalysis:
 
     def player_portrait(self, character):
         return self.launcher.art.character_image(character, (97, 116), portrait=True) if character else None
-
-    def open_wiki(self, _event):
-        if self.character:
-            if self.character == "Regent" or engine_language(self.launcher.language) == "zh":
-                from urllib.parse import quote
-
-                page = CHINESE_CHARACTERS[CHARACTERS.index(self.character)]
-                webbrowser.open("https://sts2.huijiwiki.com/wiki/" + quote(page))
-            else:
-                webbrowser.open(f"https://sts.wiki/characters/{self.character.casefold()}")
 
     @staticmethod
     def rate(wins, total):
@@ -1806,11 +1786,11 @@ class Launcher:
 
     def show_about(self):
         credits = ("基于 wuhao21/sts2-cli，使用 MIT 许可证。\n"
-                   "角色、状态和地图图标 © Mega Crit，从本机 Steam 游戏读取。\n"
-                   "卡牌小图和角色资料来自灰机 Wiki。适用的站点内容采用 CC BY-NC-SA 4.0。") if engine_language(self.language) == "zh" else (
+                   "角色、状态、卡牌和地图图像 © Mega Crit，从本机 Steam 游戏读取。\n"
+                   "本地已有的 Wiki 卡牌小图来自灰机 Wiki。适用的站点内容采用 CC BY-NC-SA 4.0。") if engine_language(self.language) == "zh" else (
                    "Based on wuhao21/sts2-cli under the MIT license.\n"
-                   "Character, status, and map art © Mega Crit, read from the local Steam game.\n"
-                   "Card badges come from the Huiji STS2 Wiki card navigation page.\n"
+                   "Character, status, card, and map art © Mega Crit, read from the local Steam game.\n"
+                   "Existing local Wiki badges come from the Huiji STS2 Wiki card navigation page.\n"
                    "Huiji Wiki site content is published under CC BY-NC-SA 4.0 where applicable.")
         messagebox.showinfo(self.text("about"), f"{self.text('window')}\n\n{credits}", parent=self.root)
 
@@ -2059,6 +2039,7 @@ class Launcher:
             env.pop(secret, None)
         env.update(credentials or {})
         env["DOTNET_ROLL_FORWARD"] = "LatestPatch"
+        env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1"
         if persona:
             env["STS2_EXPRESSION_SETTINGS"] = str(PREFERENCES_PATH)
             env["STS2_EXPRESSION_CARD"], env["STS2_EXPRESSION_NAME"] = persona

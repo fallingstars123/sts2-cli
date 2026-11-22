@@ -7,7 +7,7 @@ import json
 import re
 import struct
 
-from wiki_card_icons import COLORS as CARD_COLORS, WikiCardIcons, card_variant
+from wiki_card_icons import COLORS as CARD_COLORS, POOL_COLORS, cached_badge, card_variant
 
 MAP_ASSETS = {
     "battle": "map_monster", "elite": "map_elite", "chest": "map_chest",
@@ -15,6 +15,8 @@ MAP_ASSETS = {
 }
 MAP_ATLAS = "images/atlases/ui_atlas.sprites/map/"
 CARD_ATLAS = "images/atlases/ui_atlas.sprites/card/"
+PORTRAIT_ATLAS = "images/atlases/card_atlas.sprites/"
+CARD_PORTRAITS = "images/packed/card_portraits/"
 TOP_BAR = "images/atlases/ui_atlas.sprites/top_bar/"
 RESOURCE_PATHS = {"hp": "heart", "gold": "gold", "deck": "deck", "floor": "floor"}
 CHARACTER_TABLE = "localization/eng/characters.json"
@@ -22,6 +24,10 @@ REGION = re.compile(rb"\bregion\s*=\s*Rect2\(\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)
 ATLAS_PATH = re.compile(rb'\bpath="res://([^\"]+\.png)"')
 TEXTURE_PATH = re.compile(rb'(?m)^path(?:\.(?:bptc|s3tc))?="res://([^\"]+\.ctex)"')
 PACK_ERRORS = (OSError, ValueError, struct.error)
+
+
+def card_entry(identifier):
+    return re.sub(r"^CARD[. :_-]+", "", identifier, flags=re.IGNORECASE).casefold()
 
 
 def texture_image(data):
@@ -63,7 +69,7 @@ class GameArt:
         self.photos = {}
         self.character_table = None
         self.portrait_pools = {}
-        self.wiki_cards = WikiCardIcons(root / "STS2 Cache" / "wiki-cards")
+        self.wiki_card_dir = root / "STS2 Cache" / "wiki-cards"
 
     def refresh(self):
         pack = self.find_pack(self.root)
@@ -85,8 +91,8 @@ class GameArt:
                     for name, offset, size, digest, flags in self.read_entries(stream):
                         if not flags and size <= 24_000_000:
                             self.index[name] = offset, size, digest
-                            if name.startswith("images/packed/card_portraits/") and name.endswith(".png.import"):
-                                pool, _, leaf = name.removeprefix("images/packed/card_portraits/").partition("/")
+                            if name.startswith(CARD_PORTRAITS) and name.endswith(".png.import"):
+                                pool, _, leaf = name.removeprefix(CARD_PORTRAITS).partition("/")
                                 self.portrait_pools[leaf.rsplit("/", 1)[-1].removesuffix(".png.import")] = pool
             except PACK_ERRORS:
                 self.index.clear()
@@ -154,16 +160,30 @@ class GameArt:
         return self.photo(("room", room, detail, size), lambda: self.read_room(room, detail), size)
 
     def card_variant(self, identifier, pool, rarity, kind):
-        entry = re.sub(r"^CARD[. :_-]+", "", identifier, flags=re.IGNORECASE).casefold()
-        return card_variant(pool or self.portrait_pools.get(entry, ""), rarity, kind)
+        return card_variant(pool or self.portrait_pools.get(card_entry(identifier), ""), rarity, kind)
 
-    def card_icon(self, variant, size):
-        wiki_file = self.wiki_cards.find(variant)
+    def card_icon(self, identifier, variant, size):
+        wiki_file = cached_badge(self.wiki_card_dir, variant)
         if wiki_file:
             icon = self.photo(("wiki-card", variant, size, wiki_file), lambda: self.read_image(wiki_file), size, local=True)
             if icon:
                 return icon
+        entry = card_entry(identifier)
+        pool = self.portrait_pools.get(entry)
+        if pool:
+            if POOL_COLORS.get(pool) != variant[0]:
+                pool = next((name for name, color in POOL_COLORS.items()
+                             if color == variant[0] and f"{PORTRAIT_ATLAS}{name}/{entry}.tres" in self.index), pool)
+            icon = self.photo(("steam-card", entry, pool, variant, size),
+                              lambda: self.read_card_portrait(pool, entry, variant), size)
+            if icon:
+                return icon
         return self.photo(("card-badge", variant, size), lambda: self.card_badge(variant), size, local=True)
+
+    def read_card_portrait(self, pool, entry, variant):
+        portrait = (self.atlas_sprite(f"{PORTRAIT_ATLAS}{pool}/{entry}.tres")
+                    or self.imported(f"{CARD_PORTRAITS}{pool}/{entry}.png"))
+        return self.card_badge(variant, portrait) if portrait else None
 
     @staticmethod
     def read_image(path):
@@ -175,14 +195,19 @@ class GameArt:
         return None
 
     @staticmethod
-    def card_badge(variant):
-        from PIL import Image, ImageDraw
+    def card_badge(variant, portrait=None):
+        from PIL import Image, ImageDraw, ImageOps
 
         color, rarity, kind = variant
         image = Image.new("RGBA", (36, 48))
         draw = ImageDraw.Draw(image)
         edge = {"uncommon": "#9CC9D7", "rare": "#F0CA87", "ancient": "#D2A0F2", "event": "#9DDABE"}.get(rarity, "#CFD8DC")
-        draw.rounded_rectangle((3, 2, 33, 46), radius=5, fill=CARD_COLORS[color], outline=edge, width=2)
+        radius = {"attack": 3, "power": 8}.get(kind, 5)
+        draw.rounded_rectangle((2, 2, 33, 46), radius=radius, fill=CARD_COLORS[color], outline=edge, width=2)
+        if portrait:
+            art = ImageOps.fit(portrait, (24, 33), method=Image.Resampling.LANCZOS)
+            image.alpha_composite(art, (6, 7))
+            return image
         light = "#F8F4DF"
         if kind == "attack":
             draw.polygon([(22, 10), (27, 10), (27, 15), (15, 30), (10, 25)], fill=light)
