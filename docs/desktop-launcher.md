@@ -6,7 +6,7 @@ Start with the [Windows portable ZIP](../README.md#download-and-play). Extract t
 
 The Fool is selectable for game builds that include that character. Mega Crit introduced the character in the Steam `public-beta` branch in v0.113.0. [Official beta notes](https://store.steampowered.com/news/app/2868840/view/708914333639245837)
 
-Desktop menus support 17 languages through `STS2 Languages.json`. The game adapter and terminal currently use English and Simplified Chinese game text. Traditional Chinese menus use Simplified Chinese game text, and the other menu languages use English game text. AI commentary has its own language setting.
+Desktop menus support 17 languages through `STS2 Languages.json`. Both Chinese menu options use Simplified Chinese game text in the adapter and terminal. All other menu options use English game text. AI commentary has its own language setting.
 
 ## AI personas and history
 
@@ -28,7 +28,7 @@ The launcher sends current game state to the selected provider when requesting a
 
 启动器可为包含愚者的游戏版本选择该角色。愚者由 Steam `public-beta` 的 v0.113.0 首次加入。[官方测试分支公告](https://store.steampowered.com/news/app/2868840/view/708914333639245837)
 
-桌面菜单通过 `STS2 Languages.json` 提供 17 种语言。游戏适配器和终端目前使用英语和简体中文游戏文本。繁体中文菜单搭配简中游戏文本，其他菜单语言搭配英文游戏文本。AI 发言语言可单独选择。
+桌面菜单通过 `STS2 Languages.json` 提供 17 种语言。选择简体或繁体中文菜单时，游戏适配器和终端使用简体中文游戏文本。选择其他菜单语言时，游戏文本使用英语。AI 发言语言可单独选择。
 
 - 在右上角齿轮的 **API 设置** 保存服务商密钥。密钥存入 Windows 凭据管理器。人物及界面设置保存在本地的 `STS2 Preferences.json`。
 - 在 **AI 游玩** 中选择人物。人物面板可配置模型、游戏角色、进阶、试跑和发言语言。可以先用 20 步试跑确认服务商设置和用量。首次使用若提示安装 API 客户端，等待完成后再开局。
