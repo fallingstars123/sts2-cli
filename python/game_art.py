@@ -13,6 +13,7 @@ MAP_ASSETS = {
     "rest": "map_rest", "shop": "map_shop", "event": "map_unknown",
 }
 MAP_ATLAS = "images/atlases/ui_atlas.sprites/map/"
+CARD_ATLAS = "images/atlases/ui_atlas.sprites/card/"
 CHARACTER_TABLE = "localization/eng/characters.json"
 REGION = re.compile(rb"\bregion\s*=\s*Rect2\(\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\s*\)")
 ATLAS_PATH = re.compile(rb'\bpath="res://([^\"]+\.png)"')
@@ -156,6 +157,17 @@ class GameArt:
 
     def room_icon(self, room, detail, size):
         return self.photo(("room", room, detail, size), lambda: self.read_room(room, detail), size)
+
+    def card_icon(self, kind, rarity, size):
+        kind = kind.casefold()
+        frame = ("ancient" if rarity.casefold() == "ancient" else kind) if kind in ("attack", "power", "skill", "quest") else "skill"
+        return self.photo(("card", frame, size), lambda: self.atlas_sprite(f"{CARD_ATLAS}card_frame_{frame}_s.tres"), size)
+
+    def relic_icon(self, identifier, size):
+        if not re.fullmatch(r"[a-zA-Z0-9_]+", identifier):
+            return None
+        key = identifier.casefold()
+        return self.photo(("relic", key, size), lambda: self.imported(f"images/relics/{key}.png"), size)
 
     def read_room(self, room, detail):
         if room in MAP_ASSETS:

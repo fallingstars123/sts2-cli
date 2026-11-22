@@ -1,4 +1,5 @@
 import builtins
+from collections import Counter
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from string import Formatter
@@ -91,6 +92,9 @@ TEXT = {
         "wiki": "角色百科",
         "latest_hp": "最近记录血量",
         "live_hp": "实时血量",
+        "inventory_deck": "牌组",
+        "inventory_relics": "遗物",
+        "inventory_empty": "这局没有记录该列表。",
         "player_stats": "金币 {gold} · 卡牌 {cards} · 遗物 {relics}",
         "observed_rate": "实测 AI 胜率",
         "finished_ai": "AI 已分胜负",
@@ -201,6 +205,9 @@ TEXT = {
         "wiki": "Character wiki",
         "latest_hp": "Last recorded HP",
         "live_hp": "Live HP",
+        "inventory_deck": "Deck",
+        "inventory_relics": "Relics",
+        "inventory_empty": "This run has no recorded items here.",
         "player_stats": "Gold {gold} · Cards {cards} · Relics {relics}",
         "observed_rate": "Observed AI win rate",
         "finished_ai": "Finished AI runs",
@@ -599,7 +606,93 @@ def configure_theme(root):
     style.configure("PlayerName.TLabel", background=PANEL, foreground=TEXT_COLOR, font=fonts["title"])
     style.configure("Caption.TLabel", background=PANEL, foreground=MUTED, font=fonts["small"])
     style.configure("Section.TLabel", background=PANEL, foreground=TEXT_COLOR, font=fonts["button"])
+    style.configure("Inventory.Treeview", background=PANEL, fieldbackground=PANEL, foreground=TEXT_COLOR,
+                    borderwidth=0, rowheight=27, font=fonts["small"])
     return fonts
+
+
+class RunInventory:
+    def __init__(self, parent, launcher):
+        self.launcher = launcher
+        self.sections = {}
+        self.expanded = set()
+        area = ttk.Frame(parent)
+        area.pack(fill="x", pady=(7, 0))
+        area.grid_columnconfigure((0, 1), weight=1, uniform="inventory")
+        for column, kind in enumerate(("deck", "relics")):
+            panel = ttk.Frame(area, style="Panel.TFrame")
+            panel.grid(row=0, column=column, sticky="new", padx=(0, 6 if column == 0 else 0))
+            button = ttk.Button(panel, style="Language.TButton", command=lambda kind=kind: self.toggle(kind))
+            button.pack(fill="x", anchor="n")
+            body = ttk.Frame(panel, style="Panel.TFrame", padding=(4, 3))
+            table = ttk.Treeview(body, show="tree", columns=("count",), height=4, style="Inventory.Treeview",
+                                 selectmode="none")
+            table.column("#0", width=145, stretch=True)
+            table.column("count", width=44, minwidth=40, stretch=False, anchor="e")
+            table.pack(side="left", fill="both", expand=True)
+            bar = ttk.Scrollbar(body, orient="vertical", command=table.yview, style="History.Vertical.TScrollbar")
+            bar.pack(side="right", fill="y")
+            table.configure(yscrollcommand=bar.set)
+            self.sections[kind] = (button, body, table)
+        self.signatures = {}
+        self.counts = {}
+
+    def toggle(self, kind):
+        body = self.sections[kind][1]
+        if kind in self.expanded:
+            self.expanded.remove(kind)
+            body.pack_forget()
+        else:
+            self.expanded.add(kind)
+            body.pack(fill="x", expand=True)
+        self.set_button(kind)
+
+    def set_button(self, kind):
+        count = self.counts.get(kind)
+        label = self.launcher.text("inventory_" + kind)
+        prefix = "▾" if kind in self.expanded else "▸"
+        self.sections[kind][0].configure(text=f"{prefix}  {label}" + (f"  ({count})" if count is not None else ""))
+
+    def update(self, player):
+        language = engine_language(self.launcher.language)
+        for kind, (_, _, table) in self.sections.items():
+            items = player.get(kind)
+            self.counts[kind] = len(items) if isinstance(items, list) else player.get("deck_size") if kind == "deck" else None
+            self.set_button(kind)
+            rows = Counter()
+            for item in items if isinstance(items, list) else ():
+                if not isinstance(item, dict):
+                    continue
+                name = item.get("name")
+                english = name.get("en", "") if isinstance(name, dict) else name
+                label = name.get(language) or english if isinstance(name, dict) else name
+                identifier = item.get("id")
+                if not isinstance(identifier, str):
+                    identifier = re.sub(r"[^a-z0-9]+", "_", english.casefold()).strip("_") if isinstance(english, str) else ""
+                if not isinstance(label, str) or not label:
+                    label = identifier.rsplit(".", 1)[-1].replace("_", " ").title()
+                if not label:
+                    continue
+                if item.get("upgraded") and not label.endswith("+"):
+                    label += "+"
+                card_type = item.get("type") if isinstance(item.get("type"), str) else ""
+                rarity = item.get("rarity") if isinstance(item.get("rarity"), str) else ""
+                rows[identifier, label, card_type, rarity] += 1
+            signature = (self.launcher.language, tuple(rows.items()))
+            if self.signatures.get(kind) == signature:
+                continue
+            self.signatures[kind] = signature
+            scroll = table.yview()[0]
+            table.delete(*table.get_children())
+            for (identifier, label, card_type, rarity), copies in rows.items():
+                art = self.launcher.art
+                icon = art.card_icon(card_type, rarity, (16, 22)) if kind == "deck" else art.relic_icon(identifier, (22, 22))
+                table.insert("", "end", text=label if icon else "◇  " + label,
+                             image=icon or "", values=(f"×{copies}",))
+            if not rows:
+                table.insert("", "end", text=self.launcher.text("inventory_empty"))
+            table.configure(height=min(5, max(1, len(rows))))
+            table.yview_moveto(scroll)
 
 
 class RunAnalysis:
@@ -645,6 +738,7 @@ class RunAnalysis:
         self.recent_hp.bind("<Configure>", self.draw_player_health)
         self.player_items = ttk.Label(card, style="Caption.TLabel")
         self.player_items.pack(anchor="w")
+        self.inventory = RunInventory(area, launcher)
 
         summary = ttk.Frame(area)
         summary.pack(fill="x", pady=(7, 0))
@@ -726,6 +820,7 @@ class RunAnalysis:
         self.draw_bars()
         self.draw_trend()
         self.show_player(info, player)
+        self.inventory.update(player)
         self.show_notes(folder, info)
 
     def show_player(self, info, player):
@@ -1059,7 +1154,7 @@ class RunHistory:
         if self.detail_tab == "analysis_tab":
             self.analysis.metrics_for(run, info, HISTORY_DIR)
         else:
-            self.maps.set_run(run, folder if scene else None, scene)
+            self.maps.set_run(run, folder if scene else None, scene, info.get("seed"))
 
     def open_room(self, path):
         key = str(path)

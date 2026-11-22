@@ -2929,6 +2929,7 @@ public class RunSimulator
                 try { foreach (var dv in r.DynamicVars.Values) vars[dv.Name] = (int)dv.BaseValue; } catch { }
                 return new Dictionary<string, object?>
                 {
+                    ["id"] = r.Id.Entry,
                     ["name"] = _loc.Relic(r.Id.Entry),
                     ["description"] = _loc.Bilingual("relics", r.Id.Entry + ".description"),
                     ["vars"] = vars.Count > 0 ? vars : null,
@@ -2960,6 +2961,7 @@ public class RunSimulator
                     ["name"] = _loc.Card(c.Id.Entry),
                     ["cost"] = c.EnergyCost?.GetResolved() ?? 0,
                     ["type"] = c.Type.ToString(),
+                    ["rarity"] = c.Rarity.ToString(),
                     ["upgraded"] = c.IsUpgraded,
                     ["description"] = _loc.Bilingual("cards", c.Id.Entry + ".description"),
                     ["stats"] = dstats.Count > 0 ? dstats : null,

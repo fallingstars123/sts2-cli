@@ -119,7 +119,10 @@
       "wiki": "角色百科",
       "latest_hp": "最近記錄生命",
       "player_stats": "金幣 {gold} · 卡牌 {cards} · 遺物 {relics}",
-      "live_hp": "即時生命"
+      "live_hp": "即時生命",
+      "inventory_deck": "牌組",
+      "inventory_relics": "遺物",
+      "inventory_empty": "這局沒有記錄這份清單。"
     }
   },
   "en": {
@@ -242,7 +245,10 @@
       "wiki": "キャラクター Wiki",
       "latest_hp": "最後に記録された HP",
       "player_stats": "ゴールド {gold} · カード {cards} · レリック {relics}",
-      "live_hp": "現在の HP"
+      "live_hp": "現在の HP",
+      "inventory_deck": "デッキ",
+      "inventory_relics": "レリック",
+      "inventory_empty": "このランに記録がありません。"
     }
   },
   "ko": {
@@ -362,7 +368,10 @@
       "wiki": "캐릭터 위키",
       "latest_hp": "마지막 기록 HP",
       "player_stats": "골드 {gold} · 카드 {cards} · 유물 {relics}",
-      "live_hp": "실시간 HP"
+      "live_hp": "실시간 HP",
+      "inventory_deck": "덱",
+      "inventory_relics": "유물",
+      "inventory_empty": "이 플레이에는 기록이 없습니다."
     }
   },
   "es": {
@@ -482,7 +491,10 @@
       "wiki": "Wiki del personaje",
       "latest_hp": "Últimos PV registrados",
       "player_stats": "Oro {gold} · Cartas {cards} · Reliquias {relics}",
-      "live_hp": "PV actuales"
+      "live_hp": "PV actuales",
+      "inventory_deck": "Mazo",
+      "inventory_relics": "Reliquias",
+      "inventory_empty": "Esta partida no tiene elementos registrados aquí."
     }
   },
   "fr": {
@@ -602,7 +614,10 @@
       "wiki": "Wiki du personnage",
       "latest_hp": "Derniers PV relevés",
       "player_stats": "Or {gold} · Cartes {cards} · Reliques {relics}",
-      "live_hp": "PV actuels"
+      "live_hp": "PV actuels",
+      "inventory_deck": "Deck",
+      "inventory_relics": "Reliques",
+      "inventory_empty": "Aucun élément enregistré ici pour cette partie."
     }
   },
   "de": {
@@ -722,7 +737,10 @@
       "wiki": "Charakter-Wiki",
       "latest_hp": "Zuletzt erfasste LP",
       "player_stats": "Gold {gold} · Karten {cards} · Relikte {relics}",
-      "live_hp": "Aktuelle LP"
+      "live_hp": "Aktuelle LP",
+      "inventory_deck": "Deck",
+      "inventory_relics": "Relikte",
+      "inventory_empty": "Für diesen Lauf sind hier keine Einträge erfasst."
     }
   },
   "pt-BR": {
@@ -842,7 +860,10 @@
       "wiki": "Wiki do personagem",
       "latest_hp": "Últimos PV registrados",
       "player_stats": "Ouro {gold} · Cartas {cards} · Relíquias {relics}",
-      "live_hp": "PV atuais"
+      "live_hp": "PV atuais",
+      "inventory_deck": "Baralho",
+      "inventory_relics": "Relíquias",
+      "inventory_empty": "Esta partida não tem itens registrados aqui."
     }
   },
   "it": {
@@ -962,7 +983,10 @@
       "wiki": "Wiki del personaggio",
       "latest_hp": "Ultimi PS registrati",
       "player_stats": "Oro {gold} · Carte {cards} · Reliquie {relics}",
-      "live_hp": "PS attuali"
+      "live_hp": "PS attuali",
+      "inventory_deck": "Mazzo",
+      "inventory_relics": "Reliquie",
+      "inventory_empty": "Nessun elemento registrato per questa partita."
     }
   },
   "ru": {
@@ -1082,7 +1106,10 @@
       "wiki": "Вики персонажа",
       "latest_hp": "Последнее записанное ОЗ",
       "player_stats": "Золото {gold} · Карты {cards} · Реликвии {relics}",
-      "live_hp": "Текущие ОЗ"
+      "live_hp": "Текущие ОЗ",
+      "inventory_deck": "Колода",
+      "inventory_relics": "Реликвии",
+      "inventory_empty": "В этом забеге здесь нет записей."
     }
   },
   "ar": {
@@ -1202,7 +1229,10 @@
       "wiki": "ويكي الشخصية",
       "latest_hp": "آخر صحة مسجلة",
       "player_stats": "ذهب {gold} · بطاقات {cards} · آثار {relics}",
-      "live_hp": "الصحة الحالية"
+      "live_hp": "الصحة الحالية",
+      "inventory_deck": "الرزمة",
+      "inventory_relics": "الآثار",
+      "inventory_empty": "لا توجد عناصر مسجلة هنا لهذه الجولة."
     }
   },
   "hi": {
@@ -1322,7 +1352,10 @@
       "wiki": "पात्र विकि",
       "latest_hp": "अंतिम दर्ज HP",
       "player_stats": "सोना {gold} · कार्ड {cards} · अवशेष {relics}",
-      "live_hp": "वर्तमान HP"
+      "live_hp": "वर्तमान HP",
+      "inventory_deck": "डेक",
+      "inventory_relics": "अवशेष",
+      "inventory_empty": "इस खेल में यहाँ कोई वस्तु दर्ज नहीं है।"
     }
   },
   "id": {
@@ -1442,7 +1475,10 @@
       "wiki": "Wiki karakter",
       "latest_hp": "HP terakhir tercatat",
       "player_stats": "Emas {gold} · Kartu {cards} · Relik {relics}",
-      "live_hp": "HP saat ini"
+      "live_hp": "HP saat ini",
+      "inventory_deck": "Dek",
+      "inventory_relics": "Relik",
+      "inventory_empty": "Tidak ada item yang tercatat untuk permainan ini."
     }
   },
   "tr": {
@@ -1562,7 +1598,10 @@
       "wiki": "Karakter vikisi",
       "latest_hp": "Son kaydedilen can",
       "player_stats": "Altın {gold} · Kart {cards} · Yadigâr {relics}",
-      "live_hp": "Anlık can"
+      "live_hp": "Anlık can",
+      "inventory_deck": "Deste",
+      "inventory_relics": "Yadigârlar",
+      "inventory_empty": "Bu koşu için burada kayıtlı öğe yok."
     }
   },
   "vi": {
@@ -1682,7 +1721,10 @@
       "wiki": "Wiki nhân vật",
       "latest_hp": "HP ghi nhận gần nhất",
       "player_stats": "Vàng {gold} · Bài {cards} · Di vật {relics}",
-      "live_hp": "HP hiện tại"
+      "live_hp": "HP hiện tại",
+      "inventory_deck": "Bộ bài",
+      "inventory_relics": "Di vật",
+      "inventory_empty": "Lượt chơi này không có dữ liệu ở đây."
     }
   },
   "th": {
@@ -1802,7 +1844,10 @@
       "wiki": "วิกิตัวละคร",
       "latest_hp": "พลังชีวิตที่บันทึกล่าสุด",
       "player_stats": "ทอง {gold} · การ์ด {cards} · วัตถุโบราณ {relics}",
-      "live_hp": "พลังชีวิตปัจจุบัน"
+      "live_hp": "พลังชีวิตปัจจุบัน",
+      "inventory_deck": "สำรับการ์ด",
+      "inventory_relics": "วัตถุโบราณ",
+      "inventory_empty": "ไม่มีรายการที่บันทึกไว้สำหรับรอบนี้"
     }
   }
 }

@@ -1,6 +1,7 @@
 """Read archived chapters and render their paths in the desktop launcher."""
 
 import json
+from hashlib import blake2s
 from math import hypot
 from tkinter import Canvas, ttk
 from typing import NamedTuple
@@ -100,7 +101,9 @@ def read_chapters(folder, records):
             scene_path, scene = rooms.get(floor, (None, {})) if logged else (None, {})
             kind = item.get("type")
             room = KINDS.get(kind.casefold(), "event") if isinstance(kind, str) else "event"
-            nodes[point] = (scene.get("room", room), floor, logged, scene_path)
+            if room == "event":
+                room = scene.get("room", room)
+            nodes[point] = (room, floor, logged, scene_path)
             children = item.get("children")
             if isinstance(children, list):
                 edges.update((point, target) for child in children if (target := coordinate(child)) and target != point)
@@ -136,6 +139,7 @@ class RunMap:
     def __init__(self, parent, launcher, records, open_room):
         self.launcher, self.records, self.open_room = launcher, records, open_room
         self.folder = self.scene_folder = self.act = self.selected = None
+        self.seed = ""
         self.focus_route = True
         self.chapters = {}
         self.chapter_ids = []
@@ -169,12 +173,13 @@ class RunMap:
     def text(self, key, **values):
         return self.launcher.text(key, **values)
 
-    def set_run(self, folder, scene_folder, scene):
+    def set_run(self, folder, scene_folder, scene, seed=None):
         changed = folder != self.folder
         select_scene = scene_folder != self.scene_folder or changed
         previous_act = self.act
         self.folder = folder
         self.scene_folder = scene_folder
+        self.seed = seed if isinstance(seed, str) else ""
         self.launcher.art.refresh()
         self.chapters = read_chapters(folder, self.records)
         self.chapter_ids = sorted(self.chapters)
@@ -253,18 +258,22 @@ class RunMap:
         nodes, edges = chapter.nodes, chapter.edges
         rows = {row for _, row in nodes}
         first, last = min(rows), max(rows)
-        step_y = 43
-        content_height = max(height, step_y * (last - first) + 88)
-        step_x = min(68, max(0, width - 98) / max(1, chapter.columns - 1))
+        step_y = 61
+        content_height = max(height, step_y * (last - first) + 112)
+        step_x = min(55, max(0, width - 105) / max(1, chapter.columns - 1))
         top = (content_height - step_y * (last - first)) / 2
         ys = {row: top + step_y * (last - row) for row in rows}
-        positions = {(col, row): (width / 2 + (col - (chapter.columns - 1) / 2) * step_x, ys[row])
-                     for col, row in nodes}
+        positions = {}
+        for (col, row), node in nodes.items():
+            dx = dy = 0
+            if chapter.full and node[0] not in ("start", "boss"):
+                a, b = blake2s(f"{self.seed}:{self.act}:{col}:{row}".encode(), digest_size=2).digest()
+                dx, dy = (a / 255 - .5) * min(19, step_x * .4), (b / 255 - .5) * 22
+            positions[col, row] = (width / 2 + (col - (chapter.columns - 1) / 2) * step_x + dx, ys[row] + dy)
         view.configure(scrollregion=(0, 0, width, content_height))
         for row in sorted(rows):
             floor = row if chapter.full else nodes[0, row][1]
-            view.create_text(22, ys[row], text=str(floor), fill="#A4B8AD", font=self.launcher.fonts["small"])
-            view.create_line(44, ys[row], width - 28, ys[row], fill="#273631")
+            view.create_text(24, ys[row], text=str(floor), fill="#7D9589", font=self.launcher.fonts["small"])
         for left, right, reached in sorted(edges, key=lambda edge: edge[2]):
             self.draw_path(positions[left], positions[right], reached)
         current = chapter.current
@@ -296,10 +305,15 @@ class RunMap:
         length = hypot(dx, dy)
         if length <= 32:
             return
-        gap = 16 / length
-        self.canvas.create_line(x + dx * gap, y + dy * gap, end[0] - dx * gap, end[1] - dy * gap,
-                                fill="#C9EEAB" if reached else "#667F75", width=3 if reached else 2,
-                                dash=(2, 5), capstyle="round", tags="route" if reached else "path")
+        first, last = 17, length - 17
+        count = max(1, round((last - first) / 7))
+        radius = 1.7 if reached else 1.2
+        color = "#C9EEAB" if reached else "#738E82"
+        for index in range(count + 1):
+            distance = (first + (last - first) * index / count) / length
+            px, py = x + dx * distance, y + dy * distance
+            self.canvas.create_oval(px-radius, py-radius, px+radius, py+radius,
+                                    fill=color, outline="", tags="route" if reached else "path")
 
     def draw_legend(self, _event=None):
         view = self.legend
