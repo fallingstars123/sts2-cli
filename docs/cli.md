@@ -2,7 +2,7 @@
 
 [中文](#中文) · [Windows launcher](../README.md)
 
-The original terminal interface supports Ironclad, Silent, Defect, Regent, and Necrobinder. See the [upstream setup guide](https://github.com/wuhao21/sts2-cli#setup) for source builds and game compatibility. On Windows, the [portable ZIP](../README.md#download-and-play) already includes the built adapter and runtimes.
+The terminal interface supports Ironclad, Silent, Defect, Regent, and Necrobinder, and accepts `Fool` when the installed game contains the character. See the [upstream setup guide](https://github.com/wuhao21/sts2-cli#setup) for source builds and game compatibility. On Windows, the [portable ZIP](../README.md#download-and-play) already includes the built adapter and runtimes.
 
 From a source checkout with its adapter prepared:
 

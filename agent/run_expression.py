@@ -6,6 +6,7 @@ from re import fullmatch
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from character_catalog import CHARACTERS
 
 PROVIDER_MODELS = {"DeepSeek": "deepseek-flash", "Claude": "claude-sonnet-5-5"}
 MODEL_CHOICES = {
@@ -19,7 +20,6 @@ LANGUAGE_NAMES = {
     "id": "Bahasa Indonesia", "tr": "Türkiye Türkçesi", "vi": "Tiếng Việt", "th": "ไทย",
 }
 SPEECH_LANGUAGES = tuple(LANGUAGE_NAMES.values())
-CHARACTERS = ("Ironclad", "Silent", "Defect", "Regent", "Necrobinder")
 STARTERS = {
     "scout": ("斥候", "斥候", "Scout", "DeepSeek", "A practical scout at the table. Be observant, direct and lightly playful."),
     "strategist": ("谋士", "謀士", "Strategist", "Claude", "A thoughtful companion at the table. Be warm, curious and concise."),

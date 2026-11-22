@@ -3,7 +3,6 @@ from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from string import Formatter
 import importlib.util
-from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -24,11 +23,14 @@ import webbrowser
 
 
 LAUNCHER = Path(__file__).resolve()
+sys.path.insert(0, str(LAUNCHER.parent / "python"))
+from character_catalog import CHARACTERS, character_id
+from game_art import GameArt
+
 HISTORY_DIR = LAUNCHER.parent / "STS2 Runs"
 PREFERENCES_PATH = LAUNCHER.parent / "STS2 Preferences.json"
-CHARACTERS = ("Ironclad", "Silent", "Defect", "Regent", "Necrobinder")
-CHINESE_CHARACTERS = ("铁甲战士", "静默猎手", "故障机器人", "储君", "亡灵契约师")
-TRADITIONAL_CHARACTERS = ("鐵甲戰士", "靜默獵手", "故障機器人", "儲君", "亡靈契約師")
+CHINESE_CHARACTERS = ("铁甲战士", "静默猎手", "故障机器人", "储君", "亡灵契约师", "愚者")
+TRADITIONAL_CHARACTERS = ("鐵甲戰士", "靜默獵手", "故障機器人", "儲君", "亡靈契約師", "愚者")
 INTERFACE_LANGUAGES = {"zh": "简体中文", "en": "English"}
 PROVIDERS = {
     "DeepSeek": ("openai", "https://api.deepseek.com", "OPENAI_API_KEY"),
@@ -454,10 +456,9 @@ class RunArchive:
                 if previous is None or (act, floor) > (previous["act"], previous["floor"]):
                     self.info["last_stage"] = {"act": act, "floor": floor}
                     changed = True
-            character = (state.get("player") or {}).get("name")
-            if isinstance(character, dict):
-                character = character.get("en")
-            if character in CHARACTERS and character != self.info["character"]:
+            player = state.get("player") or {}
+            character = character_id(player.get("character_id")) or character_id(player.get("name"))
+            if character and character != self.info["character"]:
                 self.info["character"] = character
                 changed = True
             if changed:
@@ -606,9 +607,6 @@ class RunAnalysis:
         self.launcher = launcher
         module = launcher.project / "agent" / "run_stats.py"
         self.stats = SimpleNamespace(**runpy.run_path(str(module))) if module.is_file() else None
-        self.portrait_source = runpy.run_path(str(launcher.project / "scripts" / "extract_localization.py"))["portrait"]
-        self.game_pack = runpy.run_path(str(launcher.project / "python" / "portable_runtime.py"))["find_game_pack"]
-        self.portraits = {}
         self.character = ""
         self.hp_ratio = None
         self.provider_rates = []
@@ -785,28 +783,17 @@ class RunAnalysis:
         recent.create_oval(x-2, y-2, x+2, y+2, fill=ACCENT, outline="")
 
     def player_portrait(self, character):
-        if not character:
-            return None
-        pack = self.game_pack(self.launcher.project)
-        key = pack, character
-        if not pack:
-            return None
-        if key not in self.portraits:
-            try:
-                from PIL import Image, ImageTk
-
-                data = self.portrait_source(pack, character)
-                if data:
-                    with Image.open(BytesIO(data)) as picture:
-                        picture.thumbnail((97, 116), Image.Resampling.LANCZOS)
-                        self.portraits[key] = ImageTk.PhotoImage(picture, master=self.launcher.root)
-            except (ImportError, OSError, ValueError, tk.TclError):
-                return None
-        return self.portraits.get(key)
+        return self.launcher.art.character_image(character, (97, 116), portrait=True) if character else None
 
     def open_wiki(self, _event):
         if self.character:
-            webbrowser.open(f"https://sts.wiki/characters/{self.character.casefold()}")
+            if self.character == "Regent" or engine_language(self.launcher.language) == "zh":
+                from urllib.parse import quote
+
+                page = CHINESE_CHARACTERS[CHARACTERS.index(self.character)]
+                webbrowser.open("https://sts2.huijiwiki.com/wiki/" + quote(page))
+            else:
+                webbrowser.open(f"https://sts.wiki/characters/{self.character.casefold()}")
 
     @staticmethod
     def rate(wins, total):
@@ -1217,10 +1204,8 @@ class PersonaEditor:
 
         ttk.Label(area, text=launcher.text("character")).grid(row=5, column=0, sticky="w", pady=(10, 6))
         ttk.Label(area, text=launcher.text("ascension")).grid(row=5, column=1, sticky="w", padx=(8, 0), pady=(10, 6))
-        self.role_box = ttk.Combobox(area, state="readonly", width=18, font=launcher.fonts["body"],
-                                     values=character_names(launcher.language))
-        self.role_box.grid(row=6, column=0, sticky="ew", padx=(0, 8))
-        self.role_box.current(CHARACTERS.index(card["character"]))
+        role, self.role_box = launcher.character_picker(area, 18, card["character"])
+        role.grid(row=6, column=0, sticky="ew", padx=(0, 8))
         self.ascension_box = ttk.Combobox(area, state="readonly", width=18, font=launcher.fonts["body"], values=tuple(range(11)))
         self.ascension_box.grid(row=6, column=1, sticky="ew", padx=(8, 0))
         self.ascension_box.current(card["ascension"])
@@ -1442,6 +1427,10 @@ class Launcher:
         self.status_key = ""
         self.page = "home"
         self.saves = []
+        pack_reader = runpy.run_path(str(project / "scripts" / "extract_localization.py"))
+        game_pack = runpy.run_path(str(project / "python" / "portable_runtime.py"))["find_game_pack"]
+        self.art = GameArt(project, game_pack, pack_reader["entries"], pack_reader["portrait"], root)
+        self.art.refresh()
         expression_file = project / "agent" / "run_expression.py"
         self.expression_module = SimpleNamespace(**runpy.run_path(str(expression_file))) if expression_file.is_file() else None
         saved_language = self.preferences().get("ui_language")
@@ -1538,13 +1527,13 @@ class Launcher:
         self.character_label.grid(row=1, column=0, sticky="w", pady=(0, 5))
         self.ascension_label = ttk.Label(panel)
         self.ascension_label.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(0, 5))
-        self.character_box = ttk.Combobox(panel, width=16, state="readonly", font=self.fonts["body"])
-        self.character_box.grid(row=2, column=0, sticky="ew", padx=(0, 8))
+        manual_role, self.character_box = self.character_picker(panel, 16)
+        manual_role.grid(row=2, column=0, sticky="ew", padx=(0, 8))
         self.ascension_box = ttk.Combobox(panel, width=15, state="readonly", font=self.fonts["body"],
                                          values=tuple(range(11)))
         self.ascension_box.grid(row=2, column=1, sticky="ew", padx=(8, 0))
         self.ascension_box.current(0)
-        self.manual_fields = (self.character_label, self.ascension_label, self.character_box, self.ascension_box)
+        self.manual_fields = (self.character_label, self.ascension_label, manual_role, self.ascension_box)
 
         self.api_panel = ttk.Frame(panel, style="Panel.TFrame")
         self.api_panel.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(12, 0))
@@ -1558,8 +1547,12 @@ class Launcher:
         self.persona_box.bind("<FocusIn>", lambda _event: self.root.after_idle(self.persona_box.selection_clear), add="+")
         self.persona_panel_button = ttk.Button(self.api_panel, style="Language.TButton", command=self.show_persona_panel)
         self.persona_panel_button.grid(row=1, column=1, sticky="e")
-        self.run_preview = ttk.Label(self.api_panel, style="Caption.TLabel")
-        self.run_preview.grid(row=2, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        preview_frame = ttk.Frame(self.api_panel, style="Panel.TFrame")
+        preview_frame.grid(row=2, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        self.persona_role_icon = tk.Canvas(preview_frame, width=25, height=25, bg=PANEL, highlightthickness=0)
+        self.persona_role_icon.pack(side="left", padx=(0, 5))
+        self.run_preview = ttk.Label(preview_frame, style="Caption.TLabel")
+        self.run_preview.pack(side="left")
 
         self.save_panel = ttk.Frame(panel, style="Panel.TFrame")
         self.save_panel.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(13, 0))
@@ -1673,11 +1666,13 @@ class Launcher:
 
     def show_about(self):
         credits = ("基于 wuhao21/sts2-cli，使用 MIT 许可证。\n"
-                   "游戏及角色图片 © Mega Crit。图片从本机 Steam 游戏读取。\n"
-                   "角色资料链接指向 Slay the Spire 2 Wiki。") if engine_language(self.language) == "zh" else (
+                   "角色与地图图标 © Mega Crit，从本机 Steam 游戏读取。\n"
+                   "角色资料来自灰机 Wiki，站点内容采用 CC BY-NC-SA 4.0。\n"
+                   "本地储君站姿取自灰机 Wiki「储君」的 idle_loop。") if engine_language(self.language) == "zh" else (
                    "Based on wuhao21/sts2-cli under the MIT license.\n"
-                   "Game and character art © Mega Crit. Portraits are loaded from your Steam installation.\n"
-                   "Character reference links open the Slay the Spire 2 Wiki.")
+                   "Character and map art © Mega Crit, read from the local Steam game.\n"
+                   "Character references open the wiki. The local Regent pose comes from the Huiji Wiki Regent idle_loop.\n"
+                   "Huiji Wiki site content is published under CC BY-NC-SA 4.0 where applicable.")
         messagebox.showinfo(self.text("about"), f"{self.text('window')}\n\n{credits}", parent=self.root)
 
     def select_default_speech(self, language):
@@ -1748,6 +1743,7 @@ class Launcher:
         self.persona_box.selection_clear()
         card = self.selected_persona()
         role = character_names(self.language)[CHARACTERS.index(card["character"])]
+        self.draw_character_icon(self.persona_role_icon, card["character"])
         preview = self.text("run_preview", character=role, ascension=card["ascension"])
         self.run_preview.configure(text=preview + " · " + self.text("test" if card["trial"] else "full_run"))
 
@@ -1794,6 +1790,42 @@ class Launcher:
         self.mode = mode
         self.refresh()
 
+    def character_picker(self, parent, width, character="Ironclad"):
+        picker = ttk.Frame(parent, style="Panel.TFrame")
+        mark = tk.Canvas(picker, width=25, height=25, bg=PANEL, highlightthickness=0)
+        mark.pack(side="left", padx=(0, 5))
+        box = ttk.Combobox(picker, width=width, state="readonly", font=self.fonts["body"],
+                           values=character_names(self.language))
+        box.pack(side="left", fill="x", expand=True)
+        box.current(CHARACTERS.index(character))
+        self.draw_character_icon(mark, character)
+
+        def change(_event):
+            index = box.current()
+            if 0 <= index < len(CHARACTERS):
+                self.draw_character_icon(mark, CHARACTERS[index])
+
+        box.bind("<<ComboboxSelected>>", change)
+        return picker, box
+
+    def draw_character_icon(self, canvas, character):
+        canvas.delete("all")
+        image = self.art.character_image(character, (23, 23))
+        if image:
+            canvas.create_image(12, 12, image=image)
+        else:
+            canvas.create_oval(2, 2, 23, 23, fill=FIELD, outline=BORDER)
+            canvas.create_text(12, 12, text=character[0], fill=MUTED, font=self.fonts["small_bold"])
+
+    def character_ready(self, character):
+        if character != "Fool" or self.art.has_character(character) is not False:
+            return True
+        text = ("愚者需要包含该角色的 Steam 游戏版本。当前可在 Steam 库的游戏属性中选择 public-beta。"
+                if engine_language(self.language) == "zh" else
+                "The Fool requires a Steam build with the character. Select public-beta under the game's Steam properties.")
+        messagebox.showinfo(self.text("window"), text, parent=self.root)
+        return False
+
     def refresh(self):
         selected_character = max(0, self.character_box.current())
         self.character_box.configure(values=character_names(self.language))
@@ -1829,13 +1861,18 @@ class Launcher:
         if self.child is not None:
             return
         if self.mode == "manual":
-            options = ["--character", CHARACTERS[self.character_box.current()], "--ascension", self.ascension_box.get()]
+            character = CHARACTERS[self.character_box.current()]
+            if not self.character_ready(character):
+                return
+            options = ["--character", character, "--ascension", self.ascension_box.get()]
             self.launch_console("play", ["--lang", engine_language(self.language), *options])
             return
 
         if not self.expression_module:
             return
         card = self.selected_persona()
+        if not self.character_ready(card["character"]):
+            return
         provider = card["provider"]
         package, endpoint, env_name = PROVIDERS[provider]
         key = self.api_keys[provider].get().strip()

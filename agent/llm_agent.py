@@ -29,12 +29,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "python"))
 sys.path.insert(0, os.path.join(ROOT, "agent"))
 from game_log import GameLogger  # noqa: E402
+from character_catalog import CHARACTERS  # noqa: E402
 from portable_runtime import engine_command  # noqa: E402
 from run_expression import expression_prompt, profile_for, reply_message  # noqa: E402
 from run_stats import completed_runs, estimated_wins, similar_runs, stage  # noqa: E402
 
 PROJECT = os.path.join(ROOT, "src", "Sts2Headless", "Sts2Headless.csproj")
-CHARACTERS = ["Ironclad", "Silent", "Defect", "Regent", "Necrobinder"]
 BUILD_DECISIONS = {"card_reward", "bundle_select", "shop", "event_choice", "rest_site", "card_select"}
 PLAN_FIELDS = ("direction", "priorities", "pivot")
 
@@ -487,6 +487,8 @@ def play(args):
         logger.log_action(cmd)
         s = eng.send(cmd)
         logger.log_state(s)
+        if s.get("type") == "error":
+            raise SystemExit(s.get("message", "Could not start the run."))
         last_error = None
         prev_state = s
         archived_acts = set()

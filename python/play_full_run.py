@@ -7,7 +7,7 @@ Usage:
 
 Arguments:
   num_runs    Positive integer: number of runs to play
-  character   One of: Ironclad, Silent, Defect, Regent, Necrobinder (default: Ironclad)
+  character   Character name (defaults to Ironclad)
 
 Examples:
   python3 play_full_run.py 5
@@ -24,7 +24,7 @@ import queue
 import threading
 from game_log import GameLogger
 
-VALID_CHARACTERS = ["Ironclad", "Silent", "Defect", "Regent", "Necrobinder"]
+from character_catalog import CHARACTERS as VALID_CHARACTERS
 
 def _find_dotnet():
     for p in [os.path.expanduser("~/.dotnet-arm64/dotnet"),

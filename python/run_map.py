@@ -94,8 +94,11 @@ def read_chapters(folder, records):
         route = sorted((point for point, node in nodes.items() if node[2]), key=lambda point: (point[1], point[0]))
         actual = set(zip(route, route[1:]))
         name = snapshot.get("context", {}).get("act_name")
+        boss_id = boss.get("id") if isinstance(boss, dict) and isinstance(boss.get("id"), str) else None
+        ancient_id = snapshot.get("ancient_id")
+        art = {"boss": boss_id, "start": ancient_id if isinstance(ancient_id, str) else None}
         chapters[act] = (name, full, nodes,
-                         [(p, q, (p, q) in actual) for p, q in sorted(edges) if p in nodes and q in nodes])
+                         [(p, q, (p, q) in actual) for p, q in sorted(edges) if p in nodes and q in nodes], art)
     return chapters
 
 
@@ -142,6 +145,7 @@ class RunMap:
         previous_act = self.act
         self.folder = folder
         self.scene_folder = scene_folder
+        self.launcher.art.refresh()
         self.chapters = read_chapters(folder, self.records)
         self.chapter_ids = sorted(self.chapters)
         labels = []
@@ -180,6 +184,7 @@ class RunMap:
             self.focus_route = True
             self.update_labels()
             self.draw()
+            self.draw_legend()
 
     def update_labels(self):
         label = self.chapters.get(self.act)
@@ -215,7 +220,7 @@ class RunMap:
                              font=self.launcher.fonts["body"], width=width - 30)
             view.configure(scrollregion=(0, 0, width, height))
             return
-        _, full, nodes, edges = chapter
+        _, full, nodes, edges, _ = chapter
         columns, rows = sorted({col for col, _ in nodes}), sorted({row for _, row in nodes})
         content_height = max(height, 34 * len(rows) + 49)
         pitch = min(72, (content_height - 60) / max(1, len(rows) - 1))
@@ -282,6 +287,14 @@ class RunMap:
 
     def icon(self, room, x, y, tag, canvas=None, scale=1):
         canvas, color = canvas or self.canvas, COLORS[room]
+        chapter = self.chapters.get(self.act)
+        detail = chapter[4].get(room) if chapter else None
+        edge = 25 if scale > 1 else 15
+        image = self.launcher.art.room_icon(room, detail, (edge, edge))
+        if image:
+            canvas.create_image(x, y, image=image, tags=tag)
+            return
+
         def shape(*coords):
             return [origin + value * scale for origin, value in zip((x, y) * (len(coords) // 2), coords)]
 

@@ -16,6 +16,7 @@ import os
 import argparse
 import random
 from game_log import GameLogger
+from character_catalog import CHARACTERS, character_id
 from portable_runtime import engine_command, portable_dotnet, prepare_game
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1572,9 +1573,7 @@ def play(character="Ironclad", seed=None, auto=False, ascension=0, log=True,
                 print(f"  {c(t('Error:','错误:'), 'red')} {state.get('message', '?')}")
                 return
             p = state.get("player", {}) if state else {}
-            char_name = p.get("name", {})
-            if isinstance(char_name, dict):
-                character = char_name.get("en", character)
+            character = character_id(p.get("character_id")) or character_id(p.get("name")) or character
             print(f"  {c(t('Save loaded!','存档加载成功!'), 'green')}")
         else:
             # Map display lang to game engine lang: "both" falls back to "zh".
@@ -1587,6 +1586,8 @@ def play(character="Ironclad", seed=None, auto=False, ascension=0, log=True,
             }, record=False)
             if state and state.get("type") == "error":
                 print(f"  {c(t('Error:','错误:'), 'red')} {state.get('message', '?')}")
+                if state.get("error_code") == "character_unavailable":
+                    raise SystemExit(1)
                 return
 
             # Replay saved actions silently
@@ -2052,7 +2053,7 @@ if __name__ == "__main__":
     parser.add_argument("--auto", action="store_true", help="Auto-play with simple AI")
     parser.add_argument("--seed", type=str, default=None, help="Random seed")
     parser.add_argument("--character", type=str, default="Ironclad",
-                       choices=["Ironclad", "Silent", "Defect", "Regent", "Necrobinder"],
+                       choices=CHARACTERS,
                        help="Character to play")
     parser.add_argument("--ascension", type=int, default=0,
                        choices=range(0, 11), metavar="0-10",

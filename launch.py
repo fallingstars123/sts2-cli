@@ -17,7 +17,7 @@ SAVE_DIR = os.path.join(ROOT, "saves")
 LOC_CHARS = os.path.join(ROOT, "localization_zhs", "characters.json")
 
 # play.py --character 使用的英文名，顺序与官方角色选择一致
-CLI_CHARACTERS = ["Ironclad", "Silent", "Defect", "Regent", "Necrobinder"]
+from python.character_catalog import CHARACTERS as CLI_CHARACTERS
 
 
 def _load_char_titles() -> dict[str, str]:

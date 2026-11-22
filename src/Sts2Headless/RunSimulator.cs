@@ -11,7 +11,6 @@ using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Models.Characters;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Entities.CardRewardAlternatives;
@@ -240,7 +239,15 @@ public class RunSimulator
 
             var player = CreatePlayer(character);
             if (player == null)
+            {
+                if (string.Equals(character, "Fool", StringComparison.OrdinalIgnoreCase))
+                    return new Dictionary<string, object?>
+                    {
+                        ["type"] = "error", ["error_code"] = "character_unavailable",
+                        ["message"] = "The Fool requires a Steam build that includes the character (public-beta v0.113 or newer).",
+                    };
                 return Error($"Unknown character: {character}");
+            }
 
             var seedStr = seed ?? "headless_" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             Log($"Creating RunState with seed={seedStr}");
@@ -2911,6 +2918,7 @@ public class RunSimulator
         return new Dictionary<string, object?>
         {
             ["name"] = _loc.Bilingual("characters", (player.Character?.Id.Entry ?? "IRONCLAD") + ".title"),
+            ["character_id"] = player.Character?.Id.Entry,
             ["hp"] = player.Creature?.CurrentHp ?? 0,
             ["max_hp"] = player.Creature?.MaxHp ?? 0,
             ["block"] = player.Creature?.Block ?? 0,
@@ -3113,15 +3121,9 @@ public class RunSimulator
 
     private Player? CreatePlayer(string characterName)
     {
-        return characterName.ToLowerInvariant() switch
-        {
-            "ironclad" => Player.CreateForNewRun<Ironclad>(UnlockState.all, 1uL),
-            "silent" => Player.CreateForNewRun<Silent>(UnlockState.all, 1uL),
-            "defect" => Player.CreateForNewRun<Defect>(UnlockState.all, 1uL),
-            "regent" => Player.CreateForNewRun<Regent>(UnlockState.all, 1uL),
-            "necrobinder" => Player.CreateForNewRun<Necrobinder>(UnlockState.all, 1uL),
-            _ => null
-        };
+        var model = ModelDb.AllCharacters.FirstOrDefault(
+            character => string.Equals(character.Id.Entry, characterName, StringComparison.OrdinalIgnoreCase));
+        return model == null ? null : Player.CreateForNewRun(model, UnlockState.all, 1uL);
     }
 
     private static void PatchCmdWait()
@@ -3844,6 +3846,7 @@ public class RunSimulator
             ["context"] = RunContext(),
             ["rows"] = rows,
             ["boss"] = bossNode,
+            ["ancient_id"] = _runState.Act?.Ancient?.Id.Entry,
             ["current_coord"] = currentCoord.HasValue ? new Dictionary<string, object?>
             {
                 ["col"] = (int)currentCoord.Value.col,

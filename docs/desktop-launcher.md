@@ -4,6 +4,8 @@
 
 Start with the [Windows portable ZIP](../README.md#download-and-play). Extract the whole folder, double-click `Start STS2.cmd`, and start a manual run to confirm the launcher can find your Steam installation. On first play, the launcher prepares the game dependencies and English and Chinese game text inside the extracted folder. If it cannot locate the game, choose its installation folder. Adapter compatibility can vary by game version. Tested builds are listed in the [release notes](https://github.com/fallingstars123/sts2-cli/releases).
 
+The Fool is selectable for game builds that include that character. Mega Crit introduced the character in the Steam `public-beta` branch in v0.113.0. [Official beta notes](https://store.steampowered.com/news/app/2868840/view/708914333639245837)
+
 ## AI personas and history
 
 - Open **API settings** in the gear menu and add the API key for your provider. The launcher uses Windows Credential Manager for keys and stores persona preferences beside the launcher in `STS2 Preferences.json`.
@@ -20,6 +22,8 @@ The launcher sends current game state to the selected provider when requesting a
 [简体中文 README](../README.zh-CN.md)
 
 下载并完整解压 [Windows 便携版 ZIP](../README.zh-CN.md#下载与启动)，然后双击 `Start STS2.cmd`。可以先手动开一局，确认启动器能找到已安装的 Steam 游戏。首次开局会在解压目录内准备游戏依赖和中英文游戏文本。如果没有自动找到游戏，选择安装目录即可。适配情况因游戏版本而异，已测试的构建见 [发布说明](https://github.com/fallingstars123/sts2-cli/releases)。
+
+启动器可为包含愚者的游戏版本选择该角色。愚者由 Steam `public-beta` 的 v0.113.0 首次加入。[官方测试分支公告](https://store.steampowered.com/news/app/2868840/view/708914333639245837)
 
 - 在右上角齿轮的 **API 设置** 保存服务商密钥。密钥存入 Windows 凭据管理器。人物及界面设置保存在本地的 `STS2 Preferences.json`。
 - 在 **AI 游玩** 中选择人物。人物面板可配置模型、游戏角色、进阶、试跑和发言语言。可以先用 20 步试跑确认服务商设置和用量。首次使用若提示安装 API 客户端，等待完成后再开局。
