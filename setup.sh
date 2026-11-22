@@ -102,7 +102,14 @@ fi
 # Refresh text alongside the engine so descriptions match the installed balance.
 PCK_PATH="$(find "$GAME_DIR" "$(dirname "$GAME_DIR")" -maxdepth 2 -name '*.pck' -print -quit 2>/dev/null)"
 if [ -n "$PCK_PATH" ]; then
-    python3 scripts/extract_localization.py "$PCK_PATH"
+    if python3 -c 'import sys' >/dev/null 2>&1; then
+        python3 scripts/extract_localization.py "$PCK_PATH"
+    elif python -c 'import sys' >/dev/null 2>&1; then
+        python scripts/extract_localization.py "$PCK_PATH"
+    else
+        echo "Python was not found. Install Python and make it available on PATH."
+        exit 1
+    fi
 else
     echo "⚠ No game PCK found; keeping existing localization tables."
 fi

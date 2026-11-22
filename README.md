@@ -1,5 +1,7 @@
 # sts2-cli
 
+[Windows desktop launcher](docs/desktop-launcher.md) · [Windows 启动器](docs/desktop-launcher.md#中文) · [Upstream](https://github.com/wuhao21/sts2-cli)
+
 <details open>
 <summary><b>English</b></summary>
 
@@ -17,7 +19,7 @@ Requirements:
 - Python 3.9+
 
 ```bash
-git clone https://github.com/wuhao21/sts2-cli.git
+git clone https://github.com/fallingstars123/sts2-cli.git
 cd sts2-cli
 ./setup.sh      # copies DLLs from Steam → IL patches → builds
 ```
@@ -59,6 +61,10 @@ Type `help` in-game:
   Event:   option index / leave
   Shop:    c0 (card) / r0 (relic) / p0 (potion) / rm (remove) / leave
 ```
+
+## Windows desktop launcher
+
+This fork also offers a [Windows launcher](docs/desktop-launcher.md) for manual play, AI personas, local run history, and win-rate charts. The original terminal commands work independently.
 
 ## JSON Protocol
 
@@ -139,7 +145,7 @@ sts2.dll (game engine, IL patched)
 - Python 3.9+
 
 ```bash
-git clone https://github.com/wuhao21/sts2-cli.git
+git clone https://github.com/fallingstars123/sts2-cli.git
 cd sts2-cli
 ./setup.sh      # 从 Steam 复制 DLL → IL patch → 编译
 ```
@@ -180,6 +186,10 @@ python3 python/play.py --character Silent      # 选择静默猎手
   事件:    输入选项编号 / leave 离开
   商店:    c0 买卡 / r0 买遗物 / p0 买药水 / rm 移除 / leave 离开
 ```
+
+## Windows 桌面启动器
+
+这个 fork 增加了 [Windows 启动器](docs/desktop-launcher.md#中文)，可以手动开局、配置 AI 人物、回看对局和查看胜率图表。原有终端命令仍可单独使用。
 
 ## 角色支持
 

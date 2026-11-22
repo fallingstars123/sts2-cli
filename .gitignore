@@ -13,3 +13,7 @@ obj/
 .obsidian/
 logs/
 saves/*
+.venv/
+.env
+/STS2 Runs/
+/STS2 Preferences.json
