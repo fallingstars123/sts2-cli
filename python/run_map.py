@@ -11,6 +11,9 @@ KINDS = {"monster": "battle", "elite": "elite", "boss": "boss", "restsite": "res
          "shop": "shop", "treasure": "chest", "event": "event", "unknown": "event", "ancient": "start"}
 COLORS = {"battle": "#F29F95", "elite": "#F0AA7E", "boss": "#F8D393", "chest": "#F5CB7E",
           "rest": "#E3B9F5", "shop": "#9CCAF4", "event": "#A7B8DC", "start": "#9EDCCA"}
+LEGEND_ROOMS = ("event", "shop", "chest", "rest", "battle", "elite", "boss", "start")
+MAP_BACKGROUND = "#1D2725"
+NODE_SIZES = {"elite": 25, "boss": 48, "start": 30}
 
 
 class Chapter(NamedTuple):
@@ -152,23 +155,41 @@ class RunMap:
         self.tip.pack(side="left", padx=12)
         filters.bind("<Configure>", lambda e: self.tip.configure(wraplength=max(85, e.width - self.acts.winfo_width() - 24)))
         view = ttk.Frame(parent)
-        self.canvas = Canvas(view, background="#1D2725", highlightthickness=0, height=400)
+        view.grid_columnconfigure(0, weight=1)
+        view.grid_rowconfigure(0, weight=1)
+        graph = ttk.Frame(view)
+        graph.grid(row=0, column=0, sticky="nsew")
+        self.canvas = Canvas(graph, background=MAP_BACKGROUND, highlightthickness=0, width=300, height=400)
         self.canvas.pack(side="left", fill="both", expand=True)
-        scroll = ttk.Scrollbar(view, orient="vertical", command=self.canvas.yview, style="History.Vertical.TScrollbar")
+        scroll = ttk.Scrollbar(graph, orient="vertical", command=self.canvas.yview, style="History.Vertical.TScrollbar")
         scroll.pack(side="right", fill="y")
         self.canvas.configure(yscrollcommand=scroll.set)
         self.canvas.bind("<Configure>", self.draw)
         self.canvas.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(-int(e.delta / 120), "units"))
-        self.legend = Canvas(parent, height=38, background="#1D2725", highlightthickness=0)
+        self.legend = Canvas(view, width=1, height=53, background=MAP_BACKGROUND, highlightthickness=0)
+        self.legend.grid(row=1, column=0, sticky="ew", pady=(3, 0))
+        self.legend_at_side = False
         self.legend.bind("<Configure>", self.draw_legend)
+        view.bind("<Configure>", self.fit_legend)
         actions = ttk.Frame(parent, padding=(0, 7, 0, 0))
         actions.pack(side="bottom", fill="x")
-        self.legend.pack(side="bottom", fill="x", pady=(3, 0))
         view.pack(fill="both", expand=True)
         self.selection = ttk.Label(actions, style="Caption.TLabel")
         self.selection.pack(side="left")
         self.room_button = ttk.Button(actions, command=self.show_room)
         self.room_button.pack(side="right")
+
+    def fit_legend(self, event):
+        side = event.width >= 542
+        if side == self.legend_at_side:
+            return
+        self.legend_at_side = side
+        if side:
+            self.legend.configure(width=150, height=251, background="#253330")
+            self.legend.grid(row=0, column=1, sticky="n", padx=(9, 0), pady=(0, 0))
+        else:
+            self.legend.configure(width=1, height=53, background=MAP_BACKGROUND)
+            self.legend.grid(row=1, column=0, sticky="ew", padx=(0, 0), pady=(3, 0))
 
     def text(self, key, **values):
         return self.launcher.text(key, **values)
@@ -255,12 +276,12 @@ class RunMap:
                              font=self.launcher.fonts["body"], width=width - 30)
             view.configure(scrollregion=(0, 0, width, height))
             return
-        nodes, edges = chapter.nodes, chapter.edges
+        nodes = chapter.nodes
         rows = {row for _, row in nodes}
         first, last = min(rows), max(rows)
-        step_y = 61
-        content_height = max(height, step_y * (last - first) + 112)
-        step_x = min(55, max(0, width - 105) / max(1, chapter.columns - 1))
+        step_y = 63
+        content_height = max(height, step_y * (last - first) + 124)
+        step_x = min(70, max(0, width - 85) / max(1, chapter.columns - 1))
         top = (content_height - step_y * (last - first)) / 2
         ys = {row: top + step_y * (last - row) for row in rows}
         positions = {}
@@ -268,26 +289,28 @@ class RunMap:
             dx = dy = 0
             if chapter.full and node[0] not in ("start", "boss"):
                 a, b = blake2s(f"{self.seed}:{self.act}:{col}:{row}".encode(), digest_size=2).digest()
-                dx, dy = (a / 255 - .5) * min(19, step_x * .4), (b / 255 - .5) * 22
-            positions[col, row] = (width / 2 + (col - (chapter.columns - 1) / 2) * step_x + dx, ys[row] + dy)
+                dx = (a / 255 - .5) * min(33, step_x * .53)
+                dy = (b / 255 - .5) * 33
+            positions[col, row] = (width / 2 + 12 + (col - (chapter.columns - 1) / 2) * step_x + dx, ys[row] + dy)
         view.configure(scrollregion=(0, 0, width, content_height))
+        view.create_line(35, 20, 35, content_height - 20, fill="#2D3E39")
         for row in sorted(rows):
             floor = row if chapter.full else nodes[0, row][1]
-            view.create_text(24, ys[row], text=str(floor), fill="#7D9589", font=self.launcher.fonts["small"])
-        for left, right, reached in sorted(edges, key=lambda edge: edge[2]):
-            self.draw_path(positions[left], positions[right], reached)
+            view.create_text(18, ys[row], text=str(floor), fill="#7D9589", font=self.launcher.fonts["small"])
+        for left, right, reached in sorted(chapter.edges, key=lambda edge: edge[2]):
+            self.draw_path(left, right, positions, chapter, reached)
         current = chapter.current
         for point, (room, _, reached, _) in nodes.items():
             x, y = positions[point]
             tag = f"room_{point[0]}_{point[1]}"
-            radius = 13
-            outline = "#C9EEAB" if reached else "#607872"
-            if self.selected == point or current == point:
-                ring = "#89C7EE" if current == point else "#F8D393"
-                view.create_oval(x-17, y-17, x+17, y+17, outline=ring, width=2, tags=tag)
-            view.create_oval(x-radius, y-radius, x+radius, y+radius, fill="#2E423A" if reached else "#23312D",
-                             width=2 if reached else 1, outline=outline, tags=tag)
-            self.icon(room, x, y, tag, scale=1.2, detail=chapter.special_art.get(point))
+            edge = NODE_SIZES.get(room, 20)
+            radius = edge / 2 + 4
+            selected = self.selected == point
+            ring = "#89C7EE" if current == point else "#F8D393" if selected else "#9ABC8B" if reached else ""
+            view.create_oval(x-radius, y-radius, x+radius, y+radius, outline=ring,
+                             fill="#293A34" if reached or selected else MAP_BACKGROUND,
+                             width=2 if current == point or selected else 1, tags=tag)
+            self.icon(room, x, y, tag, edge=edge, detail=chapter.special_art.get(point))
             view.tag_bind(tag, "<Button-1>", lambda _event, point=point: self.select_node(point))
             view.tag_bind(tag, "<Enter>", lambda _event: view.configure(cursor="hand2"))
             view.tag_bind(tag, "<Leave>", lambda _event: view.configure(cursor=""))
@@ -299,21 +322,29 @@ class RunMap:
                 view.yview_moveto(0)
             self.focus_route = False
 
-    def draw_path(self, start, end, reached):
-        x, y = start
-        dx, dy = end[0] - x, end[1] - y
+    def draw_path(self, left, right, positions, chapter, reached):
+        x, y = positions[left]
+        ex, ey = positions[right]
+        dx, dy = ex - x, ey - y
         length = hypot(dx, dy)
-        if length <= 32:
+        first = NODE_SIZES.get(chapter.nodes[left][0], 20) / 2 + 5
+        last = length - NODE_SIZES.get(chapter.nodes[right][0], 20) / 2 - 5
+        if first >= last:
             return
-        first, last = 17, length - 17
-        count = max(1, round((last - first) / 7))
-        radius = 1.7 if reached else 1.2
-        color = "#C9EEAB" if reached else "#738E82"
-        for index in range(count + 1):
-            distance = (first + (last - first) * index / count) / length
-            px, py = x + dx * distance, y + dy * distance
-            self.canvas.create_oval(px-radius, py-radius, px+radius, py+radius,
-                                    fill=color, outline="", tags="route" if reached else "path")
+        ux, uy = dx / length, dy / length
+        count = max(1, round((last - first) / 8))
+        spacing = (last - first) / count
+        seed = left[0] * 17 + left[1] * 5 + right[0] * 13 + right[1] * 3
+        color = "#C9EEAB" if reached else "#6A8679"
+        for index in range(count):
+            phase = (seed + index * 7) % 11
+            start = first + index * spacing + spacing * (.15 + phase / 55)
+            end = min(last, start + spacing * (.36 + phase / 44))
+            offset = (phase - 5) * .17
+            self.canvas.create_line(x + ux * start - uy * offset, y + uy * start + ux * offset,
+                                    x + ux * end - uy * offset, y + uy * end + ux * offset,
+                                    fill=color, width=2 if reached else 1, capstyle="round",
+                                    tags="route" if reached else "path")
 
     def draw_legend(self, _event=None):
         view = self.legend
@@ -321,9 +352,18 @@ class RunMap:
         if not self.chapters:
             return
         font = self.launcher.fonts["small"]
+        if self.legend_at_side:
+            view.create_text(13, 17, text=self.text("map_legend"), fill="#D8E4DB",
+                             font=self.launcher.fonts["small_bold"], anchor="w")
+            view.create_line(12, 31, 138, 31, fill="#435953")
+            for index, room in enumerate(LEGEND_ROOMS):
+                y = 47 + 26 * index
+                self.icon(room, 22, y, "legend", view)
+                view.create_text(40, y, text=self.room_name(room), width=104, fill="#AAC0B5", font=font, anchor="w")
+            return
         width = view.winfo_width()
-        x, y = 15, 11
-        for room in COLORS:
+        x, y = 15, 13
+        for room in LEGEND_ROOMS:
             label = self.room_name(room)
             size = font.measure(label) + 30
             if x + size > width and x > 15:
@@ -332,15 +372,16 @@ class RunMap:
             view.create_text(x + 12, y, text=label, fill="#AAC0B5", font=font, anchor="w")
             x += size
 
-    def icon(self, room, x, y, tag, canvas=None, scale=1, detail=None):
+    def icon(self, room, x, y, tag, canvas=None, edge=15, detail=None):
         canvas, color = canvas or self.canvas, COLORS[room]
         chapter = self.chapters.get(self.act)
         detail = detail or (chapter.art.get(room) if chapter else None)
-        edge = 25 if scale > 1 else 15
         image = self.launcher.art.room_icon(room, detail, (edge, edge))
         if image:
             canvas.create_image(x, y, image=image, tags=tag)
             return
+
+        scale = edge / 15
 
         def shape(*coords):
             return [origin + value * scale for origin, value in zip((x, y) * (len(coords) // 2), coords)]

@@ -20,7 +20,7 @@ PACKAGE_FILES = (
     "Start STS2.cmd", "STS2 Launcher.pyw", "STS2 Languages.json", "LICENSE", "README.md", "README.zh-CN.md",
     "agent/llm_agent.py", "agent/run_expression.py", "agent/run_stats.py",
     "python/play.py", "python/game_log.py", "python/character_catalog.py", "python/game_art.py",
-    "python/portable_runtime.py", "python/run_map.py", "scripts/extract_localization.py",
+    "python/portable_runtime.py", "python/run_map.py", "python/wiki_card_icons.py", "scripts/extract_localization.py",
     "docs/cli.md", "docs/desktop-launcher.md",
 )
 ENGINE_FILES = ("Sts2Headless.dll", "Sts2Headless.deps.json", "Sts2Headless.runtimeconfig.json", "GodotSharp.dll")

@@ -21,9 +21,9 @@ The ZIP includes Python and .NET. Manual play needs no API key. For AI play, sav
 - **Personas and languages.** Save a model, speaking style, and output language per persona. The interface and AI commentary each offer 17 languages and can be set independently.
 - **Local saves.** Detect or set a save folder from the gear menu, then select a save on the launch page.
 - **AI chat and run history.** Expand either view from the sidebar. Each run has its own archive, with separate folders for encounters, chests, rest sites, and other rooms.
-- **Run maps.** Switch between runs and acts. The scrollable map uses the engine's grid and room connections, with bright dots marking the traveled route. Select a visited room to open its record.
-- **Game icons.** Room and character icons are read from your Steam install. Archives can still be opened with built-in symbols when the art is unavailable.
-- **Character and run analysis.** The top panel shows the portrait, current HP, and recent health changes. Expand Deck or Relics to see their current contents with icons and quantities. Historical charts appear below.
+- **Run maps.** Switch between runs and acts. The scrollable map follows the engine's room connections, with dashed branches, a highlighted route, and a room legend. Select a visited room to open its record.
+- **Game icons.** Room, character, and status icons are read from your Steam install. Deck badges vary by card pool, rarity, and type. Opening the deck fetches and caches available [Huiji Wiki card badges](https://sts2.huijiwiki.com/wiki/%E5%8D%A1%E7%89%8C%E5%AF%BC%E8%88%AA). Built-in symbols are available offline.
+- **Character and run analysis.** The top panel shows the portrait, HP, recent health changes, gold, block, potions, and combat energy when recorded. Expand Deck or Relics to see their icons and quantities. Historical charts appear below.
 
 ## Screenshots
 

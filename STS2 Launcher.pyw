@@ -81,6 +81,7 @@ TEXT = {
         "record_tab": "过程",
         "analysis_tab": "分析",
         "map_tab": "地图",
+        "map_legend": "房间图例",
         "map_act": "第 {act} 幕",
         "map_floor": "第 {floor} 层",
         "map_start": "出发点",
@@ -95,7 +96,10 @@ TEXT = {
         "inventory_deck": "牌组",
         "inventory_relics": "遗物",
         "inventory_empty": "这局没有记录该列表。",
-        "player_stats": "金币 {gold} · 卡牌 {cards} · 遗物 {relics}",
+        "resource_gold": "金币",
+        "resource_block": "格挡",
+        "resource_energy": "能量",
+        "resource_potions": "药水",
         "observed_rate": "实测 AI 胜率",
         "finished_ai": "AI 已分胜负",
         "stage_estimate": "本局历史估算",
@@ -194,6 +198,7 @@ TEXT = {
         "record_tab": "Transcript",
         "analysis_tab": "Analysis",
         "map_tab": "Map",
+        "map_legend": "Room legend",
         "map_act": "Act {act}",
         "map_floor": "Floor {floor}",
         "map_start": "Start",
@@ -208,7 +213,10 @@ TEXT = {
         "inventory_deck": "Deck",
         "inventory_relics": "Relics",
         "inventory_empty": "This run has no recorded items here.",
-        "player_stats": "Gold {gold} · Cards {cards} · Relics {relics}",
+        "resource_gold": "Gold",
+        "resource_block": "Block",
+        "resource_energy": "Energy",
+        "resource_potions": "Potions",
         "observed_rate": "Observed AI win rate",
         "finished_ai": "Finished AI runs",
         "stage_estimate": "Historical run estimate",
@@ -616,13 +624,16 @@ class RunInventory:
         self.launcher = launcher
         self.sections = {}
         self.expanded = set()
+        self.player = {}
+        self.polling = False
         area = ttk.Frame(parent)
         area.pack(fill="x", pady=(7, 0))
         area.grid_columnconfigure((0, 1), weight=1, uniform="inventory")
         for column, kind in enumerate(("deck", "relics")):
             panel = ttk.Frame(area, style="Panel.TFrame")
             panel.grid(row=0, column=column, sticky="new", padx=(0, 6 if column == 0 else 0))
-            button = ttk.Button(panel, style="Language.TButton", command=lambda kind=kind: self.toggle(kind))
+            button = ttk.Button(panel, style="Language.TButton", compound="left",
+                                command=lambda kind=kind: self.toggle(kind))
             button.pack(fill="x", anchor="n")
             body = ttk.Frame(panel, style="Panel.TFrame", padding=(4, 3))
             table = ttk.Treeview(body, show="tree", columns=("count",), height=4, style="Inventory.Treeview",
@@ -645,20 +656,27 @@ class RunInventory:
         else:
             self.expanded.add(kind)
             body.pack(fill="x", expand=True)
-        self.set_button(kind)
+        self.update(self.player)
 
     def set_button(self, kind):
         count = self.counts.get(kind)
         label = self.launcher.text("inventory_" + kind)
         prefix = "▾" if kind in self.expanded else "▸"
-        self.sections[kind][0].configure(text=f"{prefix}  {label}" + (f"  ({count})" if count is not None else ""))
+        image = self.launcher.art.resource_icon("deck", "", (15, 15)) if kind == "deck" else None
+        self.sections[kind][0].configure(text=f"{prefix}  {label}" + (f"  ({count})" if count is not None else ""),
+                                         image=image or "")
 
     def update(self, player):
+        self.player = player
+        art = self.launcher.art
+        wiki = art.wiki_cards
         language = engine_language(self.launcher.language)
         for kind, (_, _, table) in self.sections.items():
             items = player.get(kind)
             self.counts[kind] = len(items) if isinstance(items, list) else player.get("deck_size") if kind == "deck" else None
             self.set_button(kind)
+            if kind not in self.expanded:
+                continue
             rows = Counter()
             for item in items if isinstance(items, list) else ():
                 if not isinstance(item, dict):
@@ -675,24 +693,35 @@ class RunInventory:
                     continue
                 if item.get("upgraded") and not label.endswith("+"):
                     label += "+"
-                card_type = item.get("type") if isinstance(item.get("type"), str) else ""
-                rarity = item.get("rarity") if isinstance(item.get("rarity"), str) else ""
-                rows[identifier, label, card_type, rarity] += 1
-            signature = (self.launcher.language, tuple(rows.items()))
+                variant = None
+                if kind == "deck":
+                    properties = [item.get(key) for key in ("pool", "rarity", "type")]
+                    variant = art.card_variant(identifier, *(value if isinstance(value, str) else "" for value in properties))
+                rows[identifier, label, variant] += 1
+            if kind == "deck":
+                wiki.request(variant for _, _, variant in rows)
+            signature = (self.launcher.language, tuple(rows.items()), wiki.revision if kind == "deck" else None)
             if self.signatures.get(kind) == signature:
                 continue
             self.signatures[kind] = signature
             scroll = table.yview()[0]
             table.delete(*table.get_children())
-            for (identifier, label, card_type, rarity), copies in rows.items():
-                art = self.launcher.art
-                icon = art.card_icon(card_type, rarity, (16, 22)) if kind == "deck" else art.relic_icon(identifier, (22, 22))
+            for (identifier, label, variant), copies in rows.items():
+                icon = art.card_icon(variant, (22, 23)) if variant else art.relic_icon(identifier, (22, 22))
                 table.insert("", "end", text=label if icon else "◇  " + label,
                              image=icon or "", values=(f"×{copies}",))
             if not rows:
                 table.insert("", "end", text=self.launcher.text("inventory_empty"))
             table.configure(height=min(5, max(1, len(rows))))
             table.yview_moveto(scroll)
+        if wiki.pending and not self.polling:
+            self.polling = True
+            self.launcher.root.after(120, self.poll_cards)
+
+    def poll_cards(self):
+        self.polling = False
+        self.launcher.art.wiki_cards.poll()
+        self.update(self.player)
 
 
 class RunAnalysis:
@@ -710,7 +739,7 @@ class RunAnalysis:
 
         player = ttk.Frame(area, style="Panel.TFrame", padding=(12, 10))
         player.pack(fill="x")
-        self.portrait_view = tk.Canvas(player, width=106, height=126, bg=FIELD, highlightthickness=1,
+        self.portrait_view = tk.Canvas(player, width=106, height=136, bg=FIELD, highlightthickness=1,
                                        highlightbackground=BORDER)
         self.portrait_view.pack(side="left", padx=(0, 15))
         card = ttk.Frame(player, style="Panel.TFrame")
@@ -722,11 +751,11 @@ class RunAnalysis:
         self.wiki = tk.Label(name_row, bg=PANEL, fg=BLUE, font=launcher.fonts["small"], cursor="hand2")
         self.wiki.pack(side="right")
         self.wiki.bind("<Button-1>", self.open_wiki)
-        self.player_progress = ttk.Label(card, style="Caption.TLabel")
+        self.player_progress = ttk.Label(card, style="Caption.TLabel", compound="left")
         self.player_progress.pack(anchor="w")
         health_row = ttk.Frame(card, style="Panel.TFrame")
         health_row.pack(fill="x", pady=(6, 2))
-        self.hp_caption = ttk.Label(health_row, style="Caption.TLabel")
+        self.hp_caption = ttk.Label(health_row, style="Caption.TLabel", compound="left")
         self.hp_caption.pack(side="left")
         self.player_hp = ttk.Label(health_row, style="Section.TLabel")
         self.player_hp.pack(side="right")
@@ -736,8 +765,13 @@ class RunAnalysis:
         self.recent_hp = tk.Canvas(card, bg=PANEL, width=1, height=24, highlightthickness=0)
         self.recent_hp.pack(fill="x", pady=(3, 2))
         self.recent_hp.bind("<Configure>", self.draw_player_health)
-        self.player_items = ttk.Label(card, style="Caption.TLabel")
-        self.player_items.pack(anchor="w")
+        resources = ttk.Frame(card, style="Panel.TFrame")
+        resources.pack(fill="x", pady=(1, 0))
+        self.resource_labels = {}
+        for index, key in enumerate(("gold", "block", "potions", "energy")):
+            badge = ttk.Label(resources, style="Caption.TLabel", compound="left")
+            badge.grid(row=index // 2, column=index % 2, sticky="w", padx=(0, 16))
+            self.resource_labels[key] = badge
         self.inventory = RunInventory(area, launcher)
 
         summary = ttk.Frame(area)
@@ -833,7 +867,9 @@ class RunAnalysis:
         started = self.stats.timestamp(info.get("started")) if self.stats else None
         live = (self.launcher.console_started is not None and started is not None
                 and started >= self.launcher.console_started and not info.get("ended"))
-        self.hp_caption.configure(text=self.text("live_hp" if live else "latest_hp"))
+        art = self.launcher.art
+        self.hp_caption.configure(text="  " + self.text("live_hp" if live else "latest_hp"),
+                                  image=art.resource_icon("hp", self.character, (15, 15)) or "")
         self.player_hp.configure(text=f"{health}/{maximum}" if has_health else "—")
         self.hp_ratio = min(1, max(0, health / maximum)) if has_health else None
         self.draw_player_health()
@@ -843,19 +879,28 @@ class RunAnalysis:
         stage = self.stats.stage(player) or self.stats.stage(info.get("last_stage")) if self.stats else None
         if stage:
             progress.extend((self.text("map_act", act=stage[0]), self.text("map_floor", floor=stage[1])))
-        self.player_progress.configure(text=" · ".join(progress))
-        if player:
-            relics = player.get("relics")
-            self.player_items.configure(text=self.text("player_stats", gold=player.get("gold", "—"),
-                                                       cards=player.get("deck_size", "—"),
-                                                       relics=len(relics) if isinstance(relics, list) else "—"))
-        else:
-            self.player_items.configure(text="")
+        self.player_progress.configure(text=("  " + " · ".join(progress)) if progress else "",
+                                       image=(art.resource_icon("floor", self.character, (14, 14)) or "") if stage else "")
+        potions = player.get("potions")
+        energy = player.get("energy")
+        maximum_energy = player.get("max_energy")
+        values = {"gold": player.get("gold"), "block": player.get("block"),
+                  "potions": sum(isinstance(potion, dict) for potion in potions) if isinstance(potions, list) else None,
+                  "energy": energy}
+        for key, badge in self.resource_labels.items():
+            number = values[key]
+            if type(number) is not int:
+                badge.grid_remove()
+                continue
+            value = f"{number}/{maximum_energy}" if key == "energy" and type(maximum_energy) is int else str(number)
+            badge.configure(text=f"  {self.text('resource_' + key)}  {value}",
+                            image=art.resource_icon(key, self.character, (16, 16)) or "")
+            badge.grid()
         self.wiki.configure(text=self.text("wiki") if self.character else "", cursor="hand2" if self.character else "")
         photo = self.player_portrait(self.character)
         self.portrait_view.delete("all")
         if photo:
-            self.portrait_view.create_image(53, 63, image=photo)
+            self.portrait_view.create_image(53, 68, image=photo)
         elif self.character:
             self.portrait_view.create_oval(36, 29, 70, 63, fill=HOVER, outline=BORDER, width=2)
             self.portrait_view.create_arc(21, 66, 85, 105, start=0, extent=180, outline=BORDER, fill=HOVER, width=2)
@@ -1761,11 +1806,12 @@ class Launcher:
 
     def show_about(self):
         credits = ("基于 wuhao21/sts2-cli，使用 MIT 许可证。\n"
-                   "角色与地图图标 © Mega Crit，从本机 Steam 游戏读取。\n"
-                   "角色资料来自灰机 Wiki，站点内容采用 CC BY-NC-SA 4.0。\n"
+                   "角色、状态和地图图标 © Mega Crit，从本机 Steam 游戏读取。\n"
+                   "卡牌小图和角色资料来自灰机 Wiki。适用的站点内容采用 CC BY-NC-SA 4.0。\n"
                    "本地储君站姿取自灰机 Wiki「储君」的 idle_loop。") if engine_language(self.language) == "zh" else (
                    "Based on wuhao21/sts2-cli under the MIT license.\n"
-                   "Character and map art © Mega Crit, read from the local Steam game.\n"
+                   "Character, status, and map art © Mega Crit, read from the local Steam game.\n"
+                   "Card badges come from the Huiji STS2 Wiki card navigation page.\n"
                    "Character references open the wiki. The local Regent pose comes from the Huiji Wiki Regent idle_loop.\n"
                    "Huiji Wiki site content is published under CC BY-NC-SA 4.0 where applicable.")
         messagebox.showinfo(self.text("about"), f"{self.text('window')}\n\n{credits}", parent=self.root)

@@ -124,6 +124,12 @@ def run_progress(folder):
         if not isinstance(player, dict) or not position:
             continue
         latest = {**latest, **player, "act": position[0], "floor": position[1]}
+        for field in ("energy", "max_energy"):
+            value = data.get(field)
+            if data.get("decision") == "combat_play" and type(value) is int:
+                latest[field] = value
+            else:
+                latest.pop(field, None)
         hp, maximum = player.get("hp"), player.get("max_hp")
         if type(hp) is int and type(maximum) is int and maximum > 0:
             points[step] = (step, max(0, min(100, 100 * hp / maximum)), position)

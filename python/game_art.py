@@ -7,6 +7,7 @@ import json
 import re
 import struct
 
+from wiki_card_icons import COLORS as CARD_COLORS, WikiCardIcons, card_variant
 
 MAP_ASSETS = {
     "battle": "map_monster", "elite": "map_elite", "chest": "map_chest",
@@ -14,6 +15,8 @@ MAP_ASSETS = {
 }
 MAP_ATLAS = "images/atlases/ui_atlas.sprites/map/"
 CARD_ATLAS = "images/atlases/ui_atlas.sprites/card/"
+TOP_BAR = "images/atlases/ui_atlas.sprites/top_bar/"
+RESOURCE_PATHS = {"hp": "heart", "gold": "gold", "deck": "deck", "floor": "floor"}
 CHARACTER_TABLE = "localization/eng/characters.json"
 REGION = re.compile(rb"\bregion\s*=\s*Rect2\(\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\s*\)")
 ATLAS_PATH = re.compile(rb'\bpath="res://([^\"]+\.png)"')
@@ -59,6 +62,8 @@ class GameArt:
         self.index = {}
         self.photos = {}
         self.character_table = None
+        self.portrait_pools = {}
+        self.wiki_cards = WikiCardIcons(root / "STS2 Cache" / "wiki-cards")
 
     def refresh(self):
         pack = self.find_pack(self.root)
@@ -73,14 +78,19 @@ class GameArt:
         self.textures.cache_clear()
         self.index.clear()
         self.character_table = None
+        self.portrait_pools.clear()
         if version:
             try:
                 with pack.open("rb") as stream:
                     for name, offset, size, digest, flags in self.read_entries(stream):
                         if not flags and size <= 24_000_000:
                             self.index[name] = offset, size, digest
+                            if name.startswith("images/packed/card_portraits/") and name.endswith(".png.import"):
+                                pool, _, leaf = name.removeprefix("images/packed/card_portraits/").partition("/")
+                                self.portrait_pools[leaf.rsplit("/", 1)[-1].removesuffix(".png.import")] = pool
             except PACK_ERRORS:
                 self.index.clear()
+                self.portrait_pools.clear()
 
     def read(self, key):
         if key not in self.index:
@@ -158,10 +168,62 @@ class GameArt:
     def room_icon(self, room, detail, size):
         return self.photo(("room", room, detail, size), lambda: self.read_room(room, detail), size)
 
-    def card_icon(self, kind, rarity, size):
-        kind = kind.casefold()
-        frame = ("ancient" if rarity.casefold() == "ancient" else kind) if kind in ("attack", "power", "skill", "quest") else "skill"
-        return self.photo(("card", frame, size), lambda: self.atlas_sprite(f"{CARD_ATLAS}card_frame_{frame}_s.tres"), size)
+    def card_variant(self, identifier, pool, rarity, kind):
+        entry = re.sub(r"^CARD[. :_-]+", "", identifier, flags=re.IGNORECASE).casefold()
+        return card_variant(pool or self.portrait_pools.get(entry, ""), rarity, kind)
+
+    def card_icon(self, variant, size):
+        wiki_file = self.wiki_cards.find(variant)
+        if wiki_file:
+            icon = self.photo(("wiki-card", variant, size, wiki_file), lambda: self.read_image(wiki_file), size, local=True)
+            if icon:
+                return icon
+        return self.photo(("card-badge", variant, size), lambda: self.card_badge(variant), size, local=True)
+
+    @staticmethod
+    def read_image(path):
+        from PIL import Image
+
+        with Image.open(path) as image:
+            if image.width <= 128 and image.height <= 128:
+                return image.convert("RGBA")
+        return None
+
+    @staticmethod
+    def card_badge(variant):
+        from PIL import Image, ImageDraw
+
+        color, rarity, kind = variant
+        image = Image.new("RGBA", (36, 48))
+        draw = ImageDraw.Draw(image)
+        edge = {"uncommon": "#9CC9D7", "rare": "#F0CA87", "ancient": "#D2A0F2", "event": "#9DDABE"}.get(rarity, "#CFD8DC")
+        draw.rounded_rectangle((3, 2, 33, 46), radius=5, fill=CARD_COLORS[color], outline=edge, width=2)
+        light = "#F8F4DF"
+        if kind == "attack":
+            draw.polygon([(22, 10), (27, 10), (27, 15), (15, 30), (10, 25)], fill=light)
+            draw.line((9, 29, 16, 35), fill=light, width=3)
+        elif kind == "skill":
+            draw.polygon([(10, 14), (26, 14), (25, 26), (18, 34), (11, 26)], fill=light)
+        elif kind == "power":
+            draw.polygon([(18, 10), (25, 23), (18, 36), (11, 23)], fill=light)
+        else:
+            draw.ellipse((12, 16, 24, 30), outline=light, width=3)
+        return image
+
+    def resource_icon(self, name, character, size):
+        def read():
+            if name in RESOURCE_PATHS:
+                return self.atlas_sprite(f"{TOP_BAR}top_bar_{RESOURCE_PATHS[name]}.tres")
+            if name == "block":
+                return self.imported("images/ui/combat/block.png")
+            if name == "energy":
+                return (self.atlas_sprite(f"{CARD_ATLAS}energy_{character.casefold()}.tres")
+                        or self.atlas_sprite(f"{CARD_ATLAS}energy_colorless.tres"))
+            if name == "potions":
+                return self.imported("images/potions/large/energy_potion.png")
+            return None
+
+        return self.photo(("resource", name, character if name == "energy" else "", size), read, size)
 
     def relic_icon(self, identifier, size):
         if not re.fullmatch(r"[a-zA-Z0-9_]+", identifier):

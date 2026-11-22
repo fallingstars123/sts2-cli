@@ -2968,6 +2968,7 @@ public class RunSimulator
                     ["keywords"] = dkws?.Count > 0 ? dkws : null,
                     ["after_upgrade"] = GetUpgradedInfo(c),
                 };
+                try { dcard["pool"] = c.VisualCardPool?.Id.Entry; } catch { }
                 // Enchantment/affliction metadata, matching the combat hand export so clients
                 // can see e.g. Slither applied to a deck card after an event (#76).
                 if (c.Enchantment != null)
