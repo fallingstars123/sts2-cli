@@ -88,6 +88,7 @@ TEXT = {
         "about": "关于",
         "wiki": "角色百科",
         "latest_hp": "最近记录血量",
+        "live_hp": "实时血量",
         "player_stats": "金币 {gold} · 卡牌 {cards} · 遗物 {relics}",
         "observed_rate": "实测 AI 胜率",
         "finished_ai": "AI 已分胜负",
@@ -197,6 +198,7 @@ TEXT = {
         "about": "About",
         "wiki": "Character wiki",
         "latest_hp": "Last recorded HP",
+        "live_hp": "Live HP",
         "player_stats": "Gold {gold} · Cards {cards} · Relics {relics}",
         "observed_rate": "Observed AI win rate",
         "finished_ai": "Finished AI runs",
@@ -593,6 +595,7 @@ def configure_theme(root):
                     bordercolor=ACCENT, lightcolor=ACCENT, darkcolor=ACCENT)
     style.map("Current.DetailTab.TButton", background=[("active", ACCENT_HOVER)])
     style.configure("Metric.TLabel", background=PANEL, foreground=ACCENT, font=fonts["title"])
+    style.configure("PlayerName.TLabel", background=PANEL, foreground=TEXT_COLOR, font=fonts["title"])
     style.configure("Caption.TLabel", background=PANEL, foreground=MUTED, font=fonts["small"])
     style.configure("Section.TLabel", background=PANEL, foreground=TEXT_COLOR, font=fonts["button"])
     return fonts
@@ -607,14 +610,46 @@ class RunAnalysis:
         self.game_pack = runpy.run_path(str(launcher.project / "python" / "portable_runtime.py"))["find_game_pack"]
         self.portraits = {}
         self.character = ""
+        self.hp_ratio = None
         self.provider_rates = []
         self.timeline = []
         self.metrics = []
         area = ttk.Frame(parent, padding=(6, 7, 6, 0))
         area.pack(fill="both", expand=True)
 
+        player = ttk.Frame(area, style="Panel.TFrame", padding=(12, 10))
+        player.pack(fill="x")
+        self.portrait_view = tk.Canvas(player, width=106, height=126, bg=FIELD, highlightthickness=1,
+                                       highlightbackground=BORDER)
+        self.portrait_view.pack(side="left", padx=(0, 15))
+        card = ttk.Frame(player, style="Panel.TFrame")
+        card.pack(side="left", fill="both", expand=True)
+        name_row = ttk.Frame(card, style="Panel.TFrame")
+        name_row.pack(fill="x")
+        self.player_name = ttk.Label(name_row, style="PlayerName.TLabel")
+        self.player_name.pack(side="left")
+        self.wiki = tk.Label(name_row, bg=PANEL, fg=BLUE, font=launcher.fonts["small"], cursor="hand2")
+        self.wiki.pack(side="right")
+        self.wiki.bind("<Button-1>", self.open_wiki)
+        self.player_progress = ttk.Label(card, style="Caption.TLabel")
+        self.player_progress.pack(anchor="w")
+        health_row = ttk.Frame(card, style="Panel.TFrame")
+        health_row.pack(fill="x", pady=(6, 2))
+        self.hp_caption = ttk.Label(health_row, style="Caption.TLabel")
+        self.hp_caption.pack(side="left")
+        self.player_hp = ttk.Label(health_row, style="Section.TLabel")
+        self.player_hp.pack(side="right")
+        self.health_bar = tk.Canvas(card, bg=FIELD, width=1, height=8, highlightthickness=0)
+        self.health_bar.pack(fill="x")
+        self.health_bar.bind("<Configure>", self.draw_player_health)
+        self.recent_hp = tk.Canvas(card, bg=PANEL, width=1, height=24, highlightthickness=0)
+        self.recent_hp.pack(fill="x", pady=(3, 2))
+        self.recent_hp.bind("<Configure>", self.draw_player_health)
+        self.player_items = ttk.Label(card, style="Caption.TLabel")
+        self.player_items.pack(anchor="w")
+
         summary = ttk.Frame(area)
-        summary.pack(fill="x")
+        summary.pack(fill="x", pady=(7, 0))
         summary.grid_columnconfigure((0, 1, 2), weight=1, uniform="metrics")
         for column in range(3):
             panel = ttk.Frame(summary, style="Panel.TFrame", padding=(10, 7))
@@ -626,38 +661,19 @@ class RunAnalysis:
                 widget.pack(anchor="w")
             self.metrics.append((caption, value, detail))
 
-        overview = ttk.Frame(area)
-        overview.pack(fill="x", pady=(7, 0))
-        overview.grid_columnconfigure((0, 1), weight=1, uniform="overview")
-        player = ttk.Frame(overview, style="Panel.TFrame", padding=(8, 5))
-        player.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
-        self.portrait_view = tk.Label(player, bg=FIELD, fg=MUTED, width=1, height=1, borderwidth=0)
-        self.portrait_view.pack(side="left", padx=(0, 8))
-        card = ttk.Frame(player, style="Panel.TFrame")
-        card.pack(side="left", fill="both", expand=True)
-        self.player_name = ttk.Label(card, style="Section.TLabel")
-        self.player_name.pack(anchor="w")
-        self.player_hp = ttk.Label(card, style="Panel.TLabel")
-        self.player_hp.pack(anchor="w")
-        self.health_bar = tk.Canvas(card, bg=FIELD, width=108, height=4, highlightthickness=0)
-        self.health_bar.pack(anchor="w", pady=(2, 1))
-        self.player_progress = ttk.Label(card, style="Caption.TLabel")
-        self.player_progress.pack(anchor="w")
-        self.player_items = ttk.Label(card, style="Caption.TLabel")
-        self.player_items.pack(anchor="w")
-        self.wiki = tk.Label(card, bg=PANEL, fg=BLUE, font=launcher.fonts["small"], cursor="hand2")
-        self.wiki.pack(anchor="w")
-        self.wiki.bind("<Button-1>", self.open_wiki)
-
-        self.bars = tk.Canvas(overview, height=93, bg=PANEL, highlightthickness=0)
-        self.bars.grid(row=0, column=1, sticky="nsew")
-        self.bars.bind("<Configure>", self.draw_bars)
         self.trend = tk.Canvas(area, height=135, bg=PANEL, highlightthickness=0)
         self.trend.pack(fill="x", pady=(7, 0))
         self.trend.bind("<Configure>", self.draw_trend)
 
-        notes = ttk.Frame(area, padding=(10, 7), style="Panel.TFrame")
-        notes.pack(fill="both", expand=True, pady=(7, 0))
+        detail = ttk.Frame(area)
+        detail.pack(fill="both", expand=True, pady=(7, 0))
+        detail.grid_columnconfigure((0, 1), weight=1, uniform="details")
+        detail.grid_rowconfigure(0, weight=1)
+        notes = ttk.Frame(detail, padding=(10, 7), style="Panel.TFrame")
+        notes.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+        self.bars = tk.Canvas(detail, width=1, height=93, bg=PANEL, highlightthickness=0)
+        self.bars.grid(row=0, column=1, sticky="nsew")
+        self.bars.bind("<Configure>", self.draw_bars)
         self.notes_title = ttk.Label(notes, style="Section.TLabel")
         self.notes_title.pack(anchor="w")
         self.notes = tk.Text(notes, bg=PANEL, fg=TEXT_COLOR, font=launcher.fonts["small"],
@@ -721,11 +737,13 @@ class RunAnalysis:
         self.player_name.configure(text=name)
         health, maximum = player.get("hp"), player.get("max_hp")
         has_health = type(health) is int and type(maximum) is int and maximum > 0
-        self.player_hp.configure(text=f"{self.text('latest_hp')}  {f'{health}/{maximum}' if has_health else '—'}")
-        self.health_bar.delete("all")
-        if has_health:
-            self.health_bar.create_rectangle(0, 0, 108 * min(1, max(0, health / maximum)), 4,
-                                             fill="#E99990", outline="")
+        started = self.stats.timestamp(info.get("started")) if self.stats else None
+        live = (self.launcher.console_started is not None and started is not None
+                and started >= self.launcher.console_started and not info.get("ended"))
+        self.hp_caption.configure(text=self.text("live_hp" if live else "latest_hp"))
+        self.player_hp.configure(text=f"{health}/{maximum}" if has_health else "—")
+        self.hp_ratio = min(1, max(0, health / maximum)) if has_health else None
+        self.draw_player_health()
         progress = []
         if type(info.get("ascension")) is int:
             progress.append(f"{self.text('ascension')} {info['ascension']}")
@@ -742,11 +760,29 @@ class RunAnalysis:
             self.player_items.configure(text="")
         self.wiki.configure(text=self.text("wiki") if self.character else "", cursor="hand2" if self.character else "")
         photo = self.player_portrait(self.character)
-        self.portrait_view.configure(image=photo or "", width=55 if photo else 0, height=75 if photo else 0)
-        if photo and not self.portrait_view.winfo_manager():
-            self.portrait_view.pack(side="left", padx=(0, 8), before=self.player_name.master)
-        elif not photo:
-            self.portrait_view.pack_forget()
+        self.portrait_view.delete("all")
+        if photo:
+            self.portrait_view.create_image(53, 63, image=photo)
+        elif self.character:
+            self.portrait_view.create_oval(36, 29, 70, 63, fill=HOVER, outline=BORDER, width=2)
+            self.portrait_view.create_arc(21, 66, 85, 105, start=0, extent=180, outline=BORDER, fill=HOVER, width=2)
+
+    def draw_player_health(self, _event=None):
+        bar, recent = self.health_bar, self.recent_hp
+        bar.delete("all")
+        recent.delete("all")
+        if self.hp_ratio is not None:
+            bar.create_rectangle(0, 0, bar.winfo_width() * self.hp_ratio, bar.winfo_height(), fill="#E99990", outline="")
+        width, height = recent.winfo_width(), recent.winfo_height()
+        points = self.timeline[-22:]
+        if width < 20 or len(points) < 2:
+            return
+        recent.create_line(0, height / 2, width, height / 2, fill=BORDER)
+        coords = [(3 + i * (width - 7) / (len(points) - 1), 2 + (height - 5) * (1 - hp / 100))
+                  for i, (_, hp, _) in enumerate(points)]
+        recent.create_line(*[dimension for p in coords for dimension in p], fill=ACCENT, width=2)
+        x, y = coords[-1]
+        recent.create_oval(x-2, y-2, x+2, y+2, fill=ACCENT, outline="")
 
     def player_portrait(self, character):
         if not character:
@@ -762,7 +798,7 @@ class RunAnalysis:
                 data = self.portrait_source(pack, character)
                 if data:
                     with Image.open(BytesIO(data)) as picture:
-                        picture.thumbnail((55, 75), Image.Resampling.LANCZOS)
+                        picture.thumbnail((97, 116), Image.Resampling.LANCZOS)
                         self.portraits[key] = ImageTk.PhotoImage(picture, master=self.launcher.root)
             except (ImportError, OSError, ValueError, tk.TclError):
                 return None
@@ -1397,6 +1433,7 @@ class Launcher:
         self.language = "zh"
         self.mode = "manual"
         self.child = None
+        self.console_started = None
         self.history = None
         self.chat = None
         self.key_settings = None
@@ -1575,7 +1612,8 @@ class Launcher:
                     view.window.grid_remove()
         if self.page != "home":
             width = max(self.root.winfo_width(), min(1010, self.root.winfo_screenwidth() - 40))
-            height = max(self.root.winfo_height(), min(730, self.root.winfo_screenheight() - 80))
+            preferred_height = 795 if self.page == "history" else 685
+            height = max(self.root.winfo_height(), min(preferred_height, self.root.winfo_screenheight() - 80))
             self.root.geometry(f"{width}x{height}")
         self.refresh_navigation()
         self.fit_drawer()
@@ -1849,6 +1887,7 @@ class Launcher:
             env["STS2_EXPRESSION_SETTINGS"] = str(PREFERENCES_PATH)
             env["STS2_EXPRESSION_CARD"], env["STS2_EXPRESSION_NAME"] = persona
             env["STS2_EXPRESSION_LANGUAGE"] = self.language
+        started = int(datetime.now().timestamp())
         try:
             self.child = subprocess.Popen(
                 [str(python), "-B", "-X", "utf8", str(LAUNCHER), "--console", self.language, task, *options],
@@ -1857,6 +1896,7 @@ class Launcher:
         except OSError as error:
             messagebox.showerror(self.text("window"), str(error), parent=self.root)
             return
+        self.console_started = started if task != "install" else None
         self.start_button.state(["disabled"])
         self.load_button.state(["disabled"])
         self.status_key = "installing" if task == "install" else "running"
@@ -1870,6 +1910,7 @@ class Launcher:
             self.root.after(1200, self.poll_console)
             return
         self.child = None
+        self.console_started = None
         self.start_button.state(["!disabled"])
         if self.mode == "manual":
             self.refresh_saves()

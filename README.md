@@ -21,14 +21,14 @@ The ZIP includes Python and .NET. Manual play needs no API key. For AI play, sav
 - **Personas and languages.** Save a model, speaking style, and output language per persona. The interface and AI commentary each offer 17 languages and can be set independently.
 - **Local saves.** Detect or set a save folder from the gear menu, then select a save on the launch page.
 - **AI chat and run history.** Expand either view from the sidebar. Each run has its own archive, with separate folders for encounters, chests, rest sites, and other rooms.
-- **Run maps.** Switch between runs and acts, follow the highlighted route, and open a visited room's record from its map icon.
-- **Character and run analysis.** See the last recorded HP, gold, deck size, relic count, and portrait from your local Steam install. The charts show health over time and historical win rates from comparable local runs.
+- **Run maps.** Switch between runs and acts, follow the highlighted route on a scrollable map, and open a visited room's record from its icon.
+- **Character and run analysis.** The top panel shows the portrait, current HP and recent health changes, gold, deck size, and relic count. Analysis updates while a selected run is in progress. Historical charts appear below.
 
 ## Screenshots
 
 The conversations, runs, and statistics below use sample data.
 
-![Run analysis showing win and loss counts, an HP timeline, and an estimate by progress](docs/screenshots/analysis-en.png)
+![Run analysis with the character, health bar, and recent HP at the top and historical charts below](docs/screenshots/analysis-en.png)
 
 ![Run map showing alternate branches, room icons, and the route already taken](docs/screenshots/map-en.png)
 

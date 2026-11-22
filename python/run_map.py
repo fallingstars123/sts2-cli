@@ -103,6 +103,7 @@ class RunMap:
     def __init__(self, parent, launcher, records, open_room):
         self.launcher, self.records, self.open_room = launcher, records, open_room
         self.folder = self.scene_folder = self.act = self.selected = None
+        self.focus_route = True
         self.chapters = {}
         self.chapter_ids = []
         filters = ttk.Frame(parent, padding=(0, 0, 0, 8))
@@ -138,6 +139,7 @@ class RunMap:
     def set_run(self, folder, scene_folder, scene):
         changed = folder != self.folder
         select_scene = scene_folder != self.scene_folder or changed
+        previous_act = self.act
         self.folder = folder
         self.scene_folder = scene_folder
         self.chapters = read_chapters(folder, self.records)
@@ -164,6 +166,7 @@ class RunMap:
                 self.act = scene["act"]
                 self.selected = next((p for p, data in self.chapters[self.act][2].items() if data[3] == scene_folder), None)
             self.acts.current(self.chapter_ids.index(self.act))
+        self.focus_route |= changed or select_scene or self.act != previous_act
         self.update_labels()
         self.draw()
         self.draw_legend()
@@ -174,7 +177,7 @@ class RunMap:
             self.act = self.chapter_ids[index]
             self.selected = None
             self.acts.selection_clear()
-            self.canvas.yview_moveto(0)
+            self.focus_route = True
             self.update_labels()
             self.draw()
 
@@ -214,34 +217,51 @@ class RunMap:
             return
         _, full, nodes, edges = chapter
         columns, rows = sorted({col for col, _ in nodes}), sorted({row for _, row in nodes})
-        content_height = max(height, 21 * len(rows) + 36)
-        pitch = min(55, (content_height - 44) / max(1, len(rows) - 1))
-        side = 55
+        content_height = max(height, 34 * len(rows) + 49)
+        pitch = min(72, (content_height - 60) / max(1, len(rows) - 1))
+        side = min(95, max(55, int(width * .12)))
         xs = {col: side + (width - 2 * side) * i / max(1, len(columns) - 1) for i, col in enumerate(columns)}
-        top = max(22, (content_height - pitch * (len(rows) - 1)) / 2)
+        top = max(30, (content_height - pitch * (len(rows) - 1)) / 2)
         ys = {row: top + pitch * i for i, row in enumerate(reversed(rows))}
         positions = {p: (xs[p[0]] if len(columns) > 1 else width / 2, ys[p[1]]) for p in nodes}
         view.configure(scrollregion=(0, 0, width, content_height))
-        for row in rows:
+        for band, row in enumerate(rows):
             floor = row + 1 if full else nodes[0, row][1]
-            view.create_text(19, ys[row], text=str(floor), fill="#A4B8AD", font=self.launcher.fonts["small"])
-            view.create_line(33, ys[row], width - 22, ys[row], fill="#253430")
+            if band % 2:
+                view.create_rectangle(0, ys[row] - pitch / 2, width, ys[row] + pitch / 2, fill="#202B28", outline="")
+            view.create_text(22, ys[row], text=str(floor), fill="#A4B8AD", font=self.launcher.fonts["small"])
+            view.create_line(43, ys[row], width - 22, ys[row], fill="#2B3A35")
         for left, right, reached in sorted(edges, key=lambda edge: edge[2]):
-            view.create_line(*positions[left], *positions[right], fill="#A4DE9D" if reached else "#536963",
-                             width=3 if reached else 1, dash=() if reached else (3, 3))
+            x1, y1 = positions[left]
+            x2, y2 = positions[right]
+            middle = (y1 + y2) / 2
+            curve = (x1, y1, x1, middle, x2, middle, x2, y2)
+            if reached:
+                view.create_line(*curve, smooth=True, fill="#3E6454", width=8)
+            view.create_line(*curve, smooth=True, fill="#C9EEAB" if reached else "#526C64",
+                             width=3 if reached else 1, dash=() if reached else (3, 4))
+        current = max((point for point, node in nodes.items() if node[2]), key=lambda point: point[1], default=None)
         for point, (room, _, reached, _) in nodes.items():
             x, y = positions[point]
             tag = f"room_{point[0]}_{point[1]}"
-            radius = 10
+            radius = 13
             outline = "#C9EEAB" if reached else "#607872"
-            if self.selected == point:
-                view.create_oval(x-14, y-14, x+14, y+14, outline="#D7F5C0", width=2, tags=tag)
+            if self.selected == point or current == point:
+                ring = "#89C7EE" if current == point else "#F8D393"
+                view.create_oval(x-17, y-17, x+17, y+17, outline=ring, width=2, tags=tag)
             view.create_oval(x-radius, y-radius, x+radius, y+radius, fill="#2E423A" if reached else "#23312D",
                              width=2 if reached else 1, outline=outline, tags=tag)
-            self.icon(room, x, y, tag)
+            self.icon(room, x, y, tag, scale=1.2)
             view.tag_bind(tag, "<Button-1>", lambda _event, point=point: self.select_node(point))
             view.tag_bind(tag, "<Enter>", lambda _event: view.configure(cursor="hand2"))
             view.tag_bind(tag, "<Leave>", lambda _event: view.configure(cursor=""))
+        if self.focus_route:
+            target = self.selected or current
+            if target in positions:
+                view.yview_moveto(max(0, (positions[target][1] - height * .57) / content_height))
+            else:
+                view.yview_moveto(0)
+            self.focus_route = False
 
     def draw_legend(self, _event=None):
         view = self.legend
@@ -260,23 +280,26 @@ class RunMap:
             view.create_text(x + 12, y, text=label, fill="#AAC0B5", font=font, anchor="w")
             x += size
 
-    def icon(self, room, x, y, tag, canvas=None):
+    def icon(self, room, x, y, tag, canvas=None, scale=1):
         canvas, color = canvas or self.canvas, COLORS[room]
+        def shape(*coords):
+            return [origin + value * scale for origin, value in zip((x, y) * (len(coords) // 2), coords)]
+
         if room == "battle":
-            canvas.create_line(x-4, y-5, x+4, y+4, x-1, y+4, fill=color, width=2, tags=tag)
-            canvas.create_line(x+4, y-5, x-4, y+4, x+1, y+4, fill=color, width=2, tags=tag)
+            canvas.create_line(*shape(-4, -5, 4, 4, -1, 4), fill=color, width=2, tags=tag)
+            canvas.create_line(*shape(4, -5, -4, 4, 1, 4), fill=color, width=2, tags=tag)
         elif room in ("elite", "boss"):
             if room == "elite":
-                canvas.create_polygon(x-5, y, x, y-5, x+5, y, x, y+5, fill=color, tags=tag)
+                canvas.create_polygon(*shape(-5, 0, 0, -5, 5, 0, 0, 5), fill=color, tags=tag)
             else:
-                canvas.create_polygon(x-5, y+3, x-6, y-4, x-2, y-1, x, y-6, x+2, y-1, x+6, y-4, x+5, y+3,
+                canvas.create_polygon(*shape(-5, 3, -6, -4, -2, -1, 0, -6, 2, -1, 6, -4, 5, 3),
                                       fill=color, tags=tag)
         elif room == "chest":
-            canvas.create_rectangle(x-5, y-4, x+5, y+4, outline=color, tags=tag)
-            canvas.create_line(x-5, y, x+5, y, fill=color, tags=tag)
-            canvas.create_line(x, y-1, x, y+2, fill=color, width=2, tags=tag)
+            canvas.create_rectangle(*shape(-5, -4, 5, 4), outline=color, tags=tag)
+            canvas.create_line(*shape(-5, 0, 5, 0), fill=color, tags=tag)
+            canvas.create_line(*shape(0, -1, 0, 2), fill=color, width=2, tags=tag)
         elif room == "rest":
-            canvas.create_polygon(x, y-6, x+5, y+1, x+2, y+5, x-3, y+5, x-5, y+1, x-2, y-3, x-1, y+2,
+            canvas.create_polygon(*shape(0, -6, 5, 1, 2, 5, -3, 5, -5, 1, -2, -3, -1, 2),
                                   fill=color, tags=tag)
         else:
             symbol = {"shop": "$", "event": "?", "start": "●"}[room]

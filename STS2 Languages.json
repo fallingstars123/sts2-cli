@@ -118,7 +118,8 @@
       "about": "關於",
       "wiki": "角色百科",
       "latest_hp": "最近記錄生命",
-      "player_stats": "金幣 {gold} · 卡牌 {cards} · 遺物 {relics}"
+      "player_stats": "金幣 {gold} · 卡牌 {cards} · 遺物 {relics}",
+      "live_hp": "即時生命"
     }
   },
   "en": {
@@ -240,7 +241,8 @@
       "about": "このアプリについて",
       "wiki": "キャラクター Wiki",
       "latest_hp": "最後に記録された HP",
-      "player_stats": "ゴールド {gold} · カード {cards} · レリック {relics}"
+      "player_stats": "ゴールド {gold} · カード {cards} · レリック {relics}",
+      "live_hp": "現在の HP"
     }
   },
   "ko": {
@@ -359,7 +361,8 @@
       "about": "정보",
       "wiki": "캐릭터 위키",
       "latest_hp": "마지막 기록 HP",
-      "player_stats": "골드 {gold} · 카드 {cards} · 유물 {relics}"
+      "player_stats": "골드 {gold} · 카드 {cards} · 유물 {relics}",
+      "live_hp": "실시간 HP"
     }
   },
   "es": {
@@ -478,7 +481,8 @@
       "about": "Acerca de",
       "wiki": "Wiki del personaje",
       "latest_hp": "Últimos PV registrados",
-      "player_stats": "Oro {gold} · Cartas {cards} · Reliquias {relics}"
+      "player_stats": "Oro {gold} · Cartas {cards} · Reliquias {relics}",
+      "live_hp": "PV actuales"
     }
   },
   "fr": {
@@ -597,7 +601,8 @@
       "about": "À propos",
       "wiki": "Wiki du personnage",
       "latest_hp": "Derniers PV relevés",
-      "player_stats": "Or {gold} · Cartes {cards} · Reliques {relics}"
+      "player_stats": "Or {gold} · Cartes {cards} · Reliques {relics}",
+      "live_hp": "PV actuels"
     }
   },
   "de": {
@@ -716,7 +721,8 @@
       "about": "Über",
       "wiki": "Charakter-Wiki",
       "latest_hp": "Zuletzt erfasste LP",
-      "player_stats": "Gold {gold} · Karten {cards} · Relikte {relics}"
+      "player_stats": "Gold {gold} · Karten {cards} · Relikte {relics}",
+      "live_hp": "Aktuelle LP"
     }
   },
   "pt-BR": {
@@ -835,7 +841,8 @@
       "about": "Sobre",
       "wiki": "Wiki do personagem",
       "latest_hp": "Últimos PV registrados",
-      "player_stats": "Ouro {gold} · Cartas {cards} · Relíquias {relics}"
+      "player_stats": "Ouro {gold} · Cartas {cards} · Relíquias {relics}",
+      "live_hp": "PV atuais"
     }
   },
   "it": {
@@ -954,7 +961,8 @@
       "about": "Informazioni",
       "wiki": "Wiki del personaggio",
       "latest_hp": "Ultimi PS registrati",
-      "player_stats": "Oro {gold} · Carte {cards} · Reliquie {relics}"
+      "player_stats": "Oro {gold} · Carte {cards} · Reliquie {relics}",
+      "live_hp": "PS attuali"
     }
   },
   "ru": {
@@ -1073,7 +1081,8 @@
       "about": "О программе",
       "wiki": "Вики персонажа",
       "latest_hp": "Последнее записанное ОЗ",
-      "player_stats": "Золото {gold} · Карты {cards} · Реликвии {relics}"
+      "player_stats": "Золото {gold} · Карты {cards} · Реликвии {relics}",
+      "live_hp": "Текущие ОЗ"
     }
   },
   "ar": {
@@ -1192,7 +1201,8 @@
       "about": "حول",
       "wiki": "ويكي الشخصية",
       "latest_hp": "آخر صحة مسجلة",
-      "player_stats": "ذهب {gold} · بطاقات {cards} · آثار {relics}"
+      "player_stats": "ذهب {gold} · بطاقات {cards} · آثار {relics}",
+      "live_hp": "الصحة الحالية"
     }
   },
   "hi": {
@@ -1311,7 +1321,8 @@
       "about": "परिचय",
       "wiki": "पात्र विकि",
       "latest_hp": "अंतिम दर्ज HP",
-      "player_stats": "सोना {gold} · कार्ड {cards} · अवशेष {relics}"
+      "player_stats": "सोना {gold} · कार्ड {cards} · अवशेष {relics}",
+      "live_hp": "वर्तमान HP"
     }
   },
   "id": {
@@ -1430,7 +1441,8 @@
       "about": "Tentang",
       "wiki": "Wiki karakter",
       "latest_hp": "HP terakhir tercatat",
-      "player_stats": "Emas {gold} · Kartu {cards} · Relik {relics}"
+      "player_stats": "Emas {gold} · Kartu {cards} · Relik {relics}",
+      "live_hp": "HP saat ini"
     }
   },
   "tr": {
@@ -1549,7 +1561,8 @@
       "about": "Hakkında",
       "wiki": "Karakter vikisi",
       "latest_hp": "Son kaydedilen can",
-      "player_stats": "Altın {gold} · Kart {cards} · Yadigâr {relics}"
+      "player_stats": "Altın {gold} · Kart {cards} · Yadigâr {relics}",
+      "live_hp": "Anlık can"
     }
   },
   "vi": {
@@ -1668,7 +1681,8 @@
       "about": "Giới thiệu",
       "wiki": "Wiki nhân vật",
       "latest_hp": "HP ghi nhận gần nhất",
-      "player_stats": "Vàng {gold} · Bài {cards} · Di vật {relics}"
+      "player_stats": "Vàng {gold} · Bài {cards} · Di vật {relics}",
+      "live_hp": "HP hiện tại"
     }
   },
   "th": {
@@ -1787,7 +1801,8 @@
       "about": "เกี่ยวกับ",
       "wiki": "วิกิตัวละคร",
       "latest_hp": "พลังชีวิตที่บันทึกล่าสุด",
-      "player_stats": "ทอง {gold} · การ์ด {cards} · วัตถุโบราณ {relics}"
+      "player_stats": "ทอง {gold} · การ์ด {cards} · วัตถุโบราณ {relics}",
+      "live_hp": "พลังชีวิตปัจจุบัน"
     }
   }
 }
