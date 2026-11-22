@@ -3,6 +3,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from string import Formatter
 import importlib.util
+from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -19,6 +20,7 @@ from tkinter import filedialog, font, messagebox, ttk
 import traceback
 from types import SimpleNamespace
 from uuid import uuid4
+import webbrowser
 
 
 LAUNCHER = Path(__file__).resolve()
@@ -75,6 +77,18 @@ TEXT = {
         "entered": "进入：{scene}",
         "record_tab": "过程",
         "analysis_tab": "分析",
+        "map_tab": "地图",
+        "map_act": "第 {act} 幕",
+        "map_floor": "第 {floor} 层",
+        "map_start": "出发点",
+        "map_full_hint": "实线高亮已走路线 · 点击节点查看房间",
+        "map_archive_hint": "历史记录仅保存了到访房间",
+        "map_open_room": "查看房间记录",
+        "map_empty": "此对局暂无地图记录。",
+        "about": "关于",
+        "wiki": "角色百科",
+        "latest_hp": "最近记录血量",
+        "player_stats": "金币 {gold} · 卡牌 {cards} · 遗物 {relics}",
         "observed_rate": "实测 AI 胜率",
         "finished_ai": "AI 已分胜负",
         "stage_estimate": "本局历史估算",
@@ -172,6 +186,18 @@ TEXT = {
         "entered": "Entered: {scene}",
         "record_tab": "Transcript",
         "analysis_tab": "Analysis",
+        "map_tab": "Map",
+        "map_act": "Act {act}",
+        "map_floor": "Floor {floor}",
+        "map_start": "Start",
+        "map_full_hint": "Solid lines show your route. Select a room for details.",
+        "map_archive_hint": "This archive contains visited rooms only.",
+        "map_open_room": "Open room record",
+        "map_empty": "There is no recorded map for this run.",
+        "about": "About",
+        "wiki": "Character wiki",
+        "latest_hp": "Last recorded HP",
+        "player_stats": "Gold {gold} · Cards {cards} · Relics {relics}",
         "observed_rate": "Observed AI win rate",
         "finished_ai": "Finished AI runs",
         "stage_estimate": "Historical run estimate",
@@ -527,8 +553,10 @@ def configure_theme(root):
     style.map("Selected.TButton", background=[("disabled", FIELD), ("active", ACCENT_HOVER)],
               foreground=[("disabled", MUTED), ("!disabled", BACKGROUND)])
     style.configure("Language.TButton", font=fonts["small"], padding=(8, 5))
-    style.configure("Gear.TMenubutton", font=("Segoe UI Symbol", 16), padding=(9, 4), foreground=TEXT_COLOR,
-                    background=FIELD, arrowcolor=MUTED, bordercolor=BORDER, lightcolor=FIELD, darkcolor=FIELD)
+    style.layout("Gear.TMenubutton", [("Menubutton.border", {"sticky": "nswe", "children": [
+        ("Menubutton.padding", {"sticky": "nswe", "children": [("Menubutton.label", {"sticky": "nswe"})]})]})])
+    style.configure("Gear.TMenubutton", font=("Segoe UI Symbol", 17), padding=0, foreground=TEXT_COLOR,
+                    background=FIELD, bordercolor=BORDER, lightcolor=FIELD, darkcolor=FIELD, anchor="center")
     style.map("Gear.TMenubutton", background=[("active", HOVER)])
     style.configure("TCombobox", padding=(9, 6), background=FIELD,
                     foreground=TEXT_COLOR, fieldbackground=FIELD, arrowcolor=TEXT_COLOR,
@@ -575,6 +603,10 @@ class RunAnalysis:
         self.launcher = launcher
         module = launcher.project / "agent" / "run_stats.py"
         self.stats = SimpleNamespace(**runpy.run_path(str(module))) if module.is_file() else None
+        self.portrait_source = runpy.run_path(str(launcher.project / "scripts" / "extract_localization.py"))["portrait"]
+        self.game_pack = runpy.run_path(str(launcher.project / "python" / "portable_runtime.py"))["find_game_pack"]
+        self.portraits = {}
+        self.character = ""
         self.provider_rates = []
         self.timeline = []
         self.metrics = []
@@ -594,10 +626,33 @@ class RunAnalysis:
                 widget.pack(anchor="w")
             self.metrics.append((caption, value, detail))
 
-        self.bars = tk.Canvas(area, height=93, bg=PANEL, highlightthickness=0)
-        self.bars.pack(fill="x", pady=(7, 0))
+        overview = ttk.Frame(area)
+        overview.pack(fill="x", pady=(7, 0))
+        overview.grid_columnconfigure((0, 1), weight=1, uniform="overview")
+        player = ttk.Frame(overview, style="Panel.TFrame", padding=(8, 5))
+        player.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+        self.portrait_view = tk.Label(player, bg=FIELD, fg=MUTED, width=1, height=1, borderwidth=0)
+        self.portrait_view.pack(side="left", padx=(0, 8))
+        card = ttk.Frame(player, style="Panel.TFrame")
+        card.pack(side="left", fill="both", expand=True)
+        self.player_name = ttk.Label(card, style="Section.TLabel")
+        self.player_name.pack(anchor="w")
+        self.player_hp = ttk.Label(card, style="Panel.TLabel")
+        self.player_hp.pack(anchor="w")
+        self.health_bar = tk.Canvas(card, bg=FIELD, width=108, height=4, highlightthickness=0)
+        self.health_bar.pack(anchor="w", pady=(2, 1))
+        self.player_progress = ttk.Label(card, style="Caption.TLabel")
+        self.player_progress.pack(anchor="w")
+        self.player_items = ttk.Label(card, style="Caption.TLabel")
+        self.player_items.pack(anchor="w")
+        self.wiki = tk.Label(card, bg=PANEL, fg=BLUE, font=launcher.fonts["small"], cursor="hand2")
+        self.wiki.pack(anchor="w")
+        self.wiki.bind("<Button-1>", self.open_wiki)
+
+        self.bars = tk.Canvas(overview, height=93, bg=PANEL, highlightthickness=0)
+        self.bars.grid(row=0, column=1, sticky="nsew")
         self.bars.bind("<Configure>", self.draw_bars)
-        self.trend = tk.Canvas(area, height=156, bg=PANEL, highlightthickness=0)
+        self.trend = tk.Canvas(area, height=135, bg=PANEL, highlightthickness=0)
         self.trend.pack(fill="x", pady=(7, 0))
         self.trend.bind("<Configure>", self.draw_trend)
 
@@ -628,13 +683,15 @@ class RunAnalysis:
         total = sum(n for _, _, n in self.provider_rates)
         self.timeline = []
         estimate_wins = estimate_total = 0
+        player = {}
         if folder and self.stats:
             target = dict(info)
             self.stats.fill_legacy_progress(folder, target)
             provider = target.get("provider")
             cohort = self.stats.similar_runs(groups.get(provider, []) if isinstance(provider, str) else [], target)
             estimates = {}
-            for step, hp, stage in self.stats.run_timeline(folder):
+            progress, player = self.stats.run_progress(folder)
+            for step, hp, stage in progress:
                 if stage not in estimates:
                     estimates[stage] = self.stats.estimated_wins(cohort, stage)
                 estimate_wins, estimate_total = estimates[stage]
@@ -654,7 +711,66 @@ class RunAnalysis:
             detail.configure(text=hint)
         self.draw_bars()
         self.draw_trend()
+        self.show_player(info, player)
         self.show_notes(folder, info)
+
+    def show_player(self, info, player):
+        character = info.get("character")
+        self.character = character if character in CHARACTERS else ""
+        name = character_names(self.launcher.language)[CHARACTERS.index(character)] if self.character else "—"
+        self.player_name.configure(text=name)
+        health, maximum = player.get("hp"), player.get("max_hp")
+        has_health = type(health) is int and type(maximum) is int and maximum > 0
+        self.player_hp.configure(text=f"{self.text('latest_hp')}  {f'{health}/{maximum}' if has_health else '—'}")
+        self.health_bar.delete("all")
+        if has_health:
+            self.health_bar.create_rectangle(0, 0, 108 * min(1, max(0, health / maximum)), 4,
+                                             fill="#E99990", outline="")
+        progress = []
+        if type(info.get("ascension")) is int:
+            progress.append(f"{self.text('ascension')} {info['ascension']}")
+        stage = self.stats.stage(player) or self.stats.stage(info.get("last_stage")) if self.stats else None
+        if stage:
+            progress.extend((self.text("map_act", act=stage[0]), self.text("map_floor", floor=stage[1])))
+        self.player_progress.configure(text=" · ".join(progress))
+        if player:
+            relics = player.get("relics")
+            self.player_items.configure(text=self.text("player_stats", gold=player.get("gold", "—"),
+                                                       cards=player.get("deck_size", "—"),
+                                                       relics=len(relics) if isinstance(relics, list) else "—"))
+        else:
+            self.player_items.configure(text="")
+        self.wiki.configure(text=self.text("wiki") if self.character else "", cursor="hand2" if self.character else "")
+        photo = self.player_portrait(self.character)
+        self.portrait_view.configure(image=photo or "", width=55 if photo else 0, height=75 if photo else 0)
+        if photo and not self.portrait_view.winfo_manager():
+            self.portrait_view.pack(side="left", padx=(0, 8), before=self.player_name.master)
+        elif not photo:
+            self.portrait_view.pack_forget()
+
+    def player_portrait(self, character):
+        if not character:
+            return None
+        pack = self.game_pack(self.launcher.project)
+        key = pack, character
+        if not pack:
+            return None
+        if key not in self.portraits:
+            try:
+                from PIL import Image, ImageTk
+
+                data = self.portrait_source(pack, character)
+                if data:
+                    with Image.open(BytesIO(data)) as picture:
+                        picture.thumbnail((55, 75), Image.Resampling.LANCZOS)
+                        self.portraits[key] = ImageTk.PhotoImage(picture, master=self.launcher.root)
+            except (ImportError, OSError, ValueError, tk.TclError):
+                return None
+        return self.portraits.get(key)
+
+    def open_wiki(self, _event):
+        if self.character:
+            webbrowser.open(f"https://sts.wiki/characters/{self.character.casefold()}")
 
     @staticmethod
     def rate(wins, total):
@@ -681,18 +797,19 @@ class RunAnalysis:
     def draw_trend(self, _event=None):
         canvas = self.trend
         canvas.delete("all")
-        width = canvas.winfo_width()
-        if width < 230:
+        width, height = canvas.winfo_width(), canvas.winfo_height()
+        if width < 230 or height < 85:
             return
         fonts = self.launcher.fonts
         canvas.create_text(12, 8, text=self.text("trend"), anchor="nw", fill=TEXT_COLOR, font=fonts["button"])
         chart_left, chart_right = 49, width - 16
-        chart_top, chart_bottom = 43, 124
+        chart_top, chart_bottom = 40, height - 29
         canvas.create_text(width-12, 15, text=self.text("estimate_line"), anchor="e", fill=BLUE, font=fonts["small"])
         estimate_width = fonts["small"].measure(self.text("estimate_line"))
         canvas.create_text(width-28-estimate_width, 15, text=self.text("health"), anchor="e", fill=ACCENT, font=fonts["small"])
         if not self.timeline:
-            canvas.create_text(width/2, 86, text=self.text("no_chart"), fill=MUTED, font=fonts["small"])
+            canvas.create_text(width/2, (chart_top + chart_bottom) / 2, text=self.text("no_chart"),
+                               fill=MUTED, font=fonts["small"])
             return
         total = self.timeline[-1][0]
         for percent in (0, 50, 100):
@@ -713,7 +830,8 @@ class RunAnalysis:
             if points:
                 x, y = points[-1]
                 canvas.create_oval(x-3, y-3, x+3, y+3, fill=color, outline="")
-        canvas.create_text(width-16, 146, text=self.text("action_axis", total=total), anchor="e", fill=MUTED, font=fonts["small"])
+        canvas.create_text(width-16, height-10, text=self.text("action_axis", total=total), anchor="e",
+                           fill=MUTED, font=fonts["small"])
 
     def show_notes(self, folder, info):
         self.notes_title.configure(text=self.text("ai_notes"))
@@ -772,10 +890,10 @@ class RunHistory:
 
         tab_bar = ttk.Frame(self.window)
         tab_bar.grid(row=1, column=0, sticky="w", pady=(0, 7))
-        tab_bar.grid_columnconfigure((0, 1), weight=1, uniform="detail_tabs")
+        tab_bar.grid_columnconfigure((0, 1, 2), weight=1, uniform="detail_tabs")
         self.detail_tab = "record_tab"
         self.detail_buttons = {}
-        for index, tab in enumerate(("record_tab", "analysis_tab")):
+        for index, tab in enumerate(("record_tab", "analysis_tab", "map_tab")):
             button = ttk.Button(tab_bar, width=13, command=lambda tab=tab: self.select_detail(tab))
             button.grid(row=0, column=index, sticky="ew", padx=(0, 5))
             self.detail_buttons[tab] = button
@@ -783,6 +901,9 @@ class RunHistory:
         self.transcript_panel = reading
         self.analysis_panel = ttk.Frame(self.window)
         self.analysis = RunAnalysis(self.analysis_panel, launcher)
+        self.map_panel = ttk.Frame(self.window)
+        map_module = runpy.run_path(str(launcher.project / "python" / "run_map.py"))
+        self.maps = map_module["RunMap"](self.map_panel, launcher, self.analysis.stats.game_records, self.open_room)
         self.body = tk.Text(reading, bg=PANEL, fg=TEXT_COLOR, font=launcher.fonts["body"],
                             wrap="word", padx=18, pady=15, relief="flat", selectbackground=BORDER,
                             highlightthickness=0, width=1, height=1, state="disabled")
@@ -800,14 +921,15 @@ class RunHistory:
 
     def select_detail(self, tab):
         self.detail_tab = tab
-        for name, panel in (("record_tab", self.transcript_panel), ("analysis_tab", self.analysis_panel)):
+        for name, panel in (("record_tab", self.transcript_panel), ("analysis_tab", self.analysis_panel),
+                            ("map_tab", self.map_panel)):
             if name == tab:
                 panel.grid(row=2, column=0, sticky="nsew")
             else:
                 panel.grid_remove()
             style = "Current.DetailTab.TButton" if name == tab else "DetailTab.TButton"
             self.detail_buttons[name].configure(style=style)
-        self.show_analysis()
+        self.show_detail()
 
     def label(self, info):
         provider = info.get("provider", "manual")
@@ -903,16 +1025,27 @@ class RunHistory:
                 elif not line or set(line.strip()) not in ({"─"}, {"═"}):
                     self.body.insert("end", line.rstrip() + "\n")
         self.body.configure(state="disabled")
-        self.show_analysis()
+        self.show_detail()
 
-    def show_analysis(self):
-        if self.detail_tab != "analysis_tab":
+    def show_detail(self):
+        if self.detail_tab == "record_tab":
             return
         selected = self.tree.selection()
         folder, info, scene = self.entries.get(selected[0], (None, {}, None)) if selected else (None, {}, None)
-        if scene:
-            folder = folder.parent
-        self.analysis.metrics_for(folder, info, HISTORY_DIR)
+        run = folder.parent if scene else folder
+        if self.detail_tab == "analysis_tab":
+            self.analysis.metrics_for(run, info, HISTORY_DIR)
+        else:
+            self.maps.set_run(run, folder if scene else None, scene)
+
+    def open_room(self, path):
+        key = str(path)
+        if key in self.entries:
+            self.tree.item(self.tree.parent(key), open=True)
+            self.tree.selection_set(key)
+            self.tree.see(key)
+            self.select_detail("record_tab")
+            self.show_record()
 
     def open_folder(self):
         selected = self.tree.selection()
@@ -1311,8 +1444,14 @@ class Launcher:
         header.grid_columnconfigure(0, weight=1)
         self.title = ttk.Label(header, style="Title.TLabel")
         self.title.grid(row=0, column=0, sticky="w", padx=(0, 20))
-        self.settings_button = ttk.Menubutton(header, text="⚙", width=3, style="Gear.TMenubutton", takefocus=True)
-        self.settings_button.grid(row=0, column=1, sticky="e")
+        edge = round(root.winfo_fpixels("0.43i"))
+        gear = ttk.Frame(header, width=edge, height=edge)
+        gear.grid(row=0, column=1, sticky="e")
+        gear.grid_propagate(False)
+        gear.grid_columnconfigure(0, weight=1)
+        gear.grid_rowconfigure(0, weight=1)
+        self.settings_button = ttk.Menubutton(gear, text="⚙", style="Gear.TMenubutton", takefocus=True)
+        self.settings_button.grid(row=0, column=0, sticky="nsew")
         menu_style = {"tearoff": False, "background": PANEL, "foreground": TEXT_COLOR,
                       "activebackground": HOVER, "activeforeground": ACCENT, "font": self.fonts["small"]}
         self.settings_menu = tk.Menu(self.settings_button, **menu_style)
@@ -1436,7 +1575,7 @@ class Launcher:
                     view.window.grid_remove()
         if self.page != "home":
             width = max(self.root.winfo_width(), min(1010, self.root.winfo_screenwidth() - 40))
-            height = max(self.root.winfo_height(), min(685, self.root.winfo_screenheight() - 80))
+            height = max(self.root.winfo_height(), min(730, self.root.winfo_screenheight() - 80))
             self.root.geometry(f"{width}x{height}")
         self.refresh_navigation()
         self.fit_drawer()
@@ -1491,6 +1630,17 @@ class Launcher:
         self.settings_menu.add_command(label=self.text("save_settings"), command=self.show_save_settings)
         if self.expression_module:
             self.settings_menu.add_command(label=self.text("api_settings"), command=self.show_api_settings)
+        self.settings_menu.add_separator()
+        self.settings_menu.add_command(label=self.text("about"), command=self.show_about)
+
+    def show_about(self):
+        credits = ("基于 wuhao21/sts2-cli，使用 MIT 许可证。\n"
+                   "游戏及角色图片 © Mega Crit。图片从本机 Steam 游戏读取。\n"
+                   "角色资料链接指向 Slay the Spire 2 Wiki。") if engine_language(self.language) == "zh" else (
+                   "Based on wuhao21/sts2-cli under the MIT license.\n"
+                   "Game and character art © Mega Crit. Portraits are loaded from your Steam installation.\n"
+                   "Character reference links open the Slay the Spire 2 Wiki.")
+        messagebox.showinfo(self.text("about"), f"{self.text('window')}\n\n{credits}", parent=self.root)
 
     def select_default_speech(self, language):
         data = self.preferences()
@@ -1682,7 +1832,8 @@ class Launcher:
         self.launch_console("play", ["--lang", engine_language(self.language), flag, str(selected)])
 
     def launch_console(self, task, options, credentials=None, persona=None):
-        if task != "install" and shutil.which("dotnet") is None:
+        bundled = self.project / "runtime" / "dotnet" / "dotnet.exe"
+        if task != "install" and not bundled.is_file() and shutil.which("dotnet") is None:
             messagebox.showerror(self.text("window"), self.text("missing_dotnet"), parent=self.root)
             return
         python = Path(sys.executable).with_name("python.exe")
@@ -1714,7 +1865,9 @@ class Launcher:
 
     def poll_console(self):
         if self.child.poll() is None:
-            self.root.after(450, self.poll_console)
+            if self.page == "history" and self.history.detail_tab in ("analysis_tab", "map_tab"):
+                self.history.refresh()
+            self.root.after(1200, self.poll_console)
             return
         self.child = None
         self.start_button.state(["!disabled"])
@@ -1837,7 +1990,7 @@ def run_recorded_game(language, task, options):
 
     def launch_engine(command, *args, **kwargs):
         if (archive.transcript is not None and kwargs.get("stderr") == subprocess.PIPE
-                and isinstance(command, list) and str(command[-1]).endswith("Sts2Headless.csproj")):
+                and isinstance(command, list) and str(command[-1]).endswith(("Sts2Headless.csproj", "Sts2Headless.dll"))):
             # The interactive CLI does not drain engine stderr. Redirect it so the pipe cannot fill.
             with (archive.folder / "engine.stderr.log").open("ab") as diagnostics:
                 return original_popen(command, *args, **{**kwargs, "stderr": diagnostics})

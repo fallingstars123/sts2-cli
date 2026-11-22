@@ -16,6 +16,7 @@ import os
 import argparse
 import random
 from game_log import GameLogger
+from portable_runtime import engine_command, portable_dotnet, prepare_game
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT = os.path.join(ROOT, "src", "Sts2Headless", "Sts2Headless.csproj")
@@ -39,7 +40,8 @@ def _find_dotnet():
             continue
     return None
 
-DOTNET = _find_dotnet()
+BUNDLED_DOTNET = portable_dotnet(ROOT)
+DOTNET = str(BUNDLED_DOTNET) if BUNDLED_DOTNET else _find_dotnet()
 
 
 def _is_wsl():
@@ -140,6 +142,15 @@ def _build():
 def ensure_setup():
     """Check that everything is ready to run. Auto-setup if needed."""
     issues = []
+
+    if BUNDLED_DOTNET:
+        try:
+            prepare_game(ROOT)
+        except (RuntimeError, OSError, subprocess.SubprocessError) as error:
+            print(f"Portable setup failed: {error}", file=sys.stderr)
+            sys.exit(1)
+        os.environ.setdefault("STS2_GAME_DIR", LIB_DIR)
+        return
 
     # Check .NET SDK
     if not DOTNET:
@@ -1499,8 +1510,9 @@ def play(character="Ironclad", seed=None, auto=False, ascension=0, log=True,
 
     logger = GameLogger(character, actual_seed, enabled=log)
     action_log = []
+    archived_acts = set()
     proc = subprocess.Popen(
-        [DOTNET, "run", "--no-build", "--project", PROJECT],
+        engine_command(ROOT, DOTNET, PROJECT),
         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, text=True, bufsize=1,
     )
@@ -1521,7 +1533,14 @@ def play(character="Ironclad", seed=None, auto=False, ascension=0, log=True,
             action_log.append(cmd)
         proc.stdin.write(json.dumps(cmd) + "\n")
         proc.stdin.flush()
-        return read()
+        state = read()
+        if state:
+            act = (state.get("context") or {}).get("act")
+            if state.get("type") == "map" and state.get("rows"):
+                archived_acts.add(act)
+            elif log and cmd.get("cmd") != "get_map" and state.get("decision") and act and act not in archived_acts:
+                send({"cmd": "get_map"}, record=False)
+        return state
 
     # Wire send into get_input for map command
     get_input._send = send

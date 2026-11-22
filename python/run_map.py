@@ -1,0 +1,283 @@
+"""Read archived chapters and render their paths in the desktop launcher."""
+
+import json
+from tkinter import Canvas, ttk
+
+
+KINDS = {"monster": "battle", "elite": "elite", "boss": "boss", "restsite": "rest",
+         "shop": "shop", "treasure": "chest", "event": "event", "unknown": "event", "ancient": "start"}
+COLORS = {"battle": "#F29F95", "elite": "#F0AA7E", "boss": "#F8D393", "chest": "#F5CB7E",
+          "rest": "#E3B9F5", "shop": "#9CCAF4", "event": "#A7B8DC", "start": "#9EDCCA"}
+
+
+def coordinate(value):
+    if isinstance(value, dict):
+        col, row = value.get("col"), value.get("row")
+        if type(col) is int and type(row) is int and 0 <= col <= 30 and 0 <= row <= 60:
+            return col, row
+    return None
+
+
+def scene_records(folder):
+    scenes = {}
+    for path in sorted(folder.glob("*/scene.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if (isinstance(data, dict) and type(data.get("act")) is int and type(data.get("floor")) is int
+                and isinstance(data.get("room"), str) and data["room"] in COLORS):
+            scenes.setdefault(data["act"], []).append((path.parent, data))
+    return scenes
+
+
+def read_chapters(folder, records):
+    if not folder:
+        return {}
+    snapshots, visited = {}, {}
+    pending = None
+    for record in records(folder):
+        data = record.get("data")
+        if not isinstance(data, dict):
+            continue
+        if record.get("type") == "action" and data.get("cmd") == "action":
+            pending = coordinate(data.get("args")) if data.get("action") == "select_map_node" else None
+        if record.get("type") != "state":
+            continue
+        ctx = data.get("context")
+        if not isinstance(ctx, dict) or type(ctx.get("act")) is not int:
+            pending = None
+            continue
+        act = ctx["act"]
+        if data.get("type") == "map" and isinstance(data.get("rows"), list) and data["rows"]:
+            snapshots[act] = data
+            position = coordinate(data.get("current_coord"))
+        elif data.get("decision"):
+            position = coordinate(ctx.get("map_coord")) or pending
+        else:
+            pending = None
+            continue
+        if position and type(ctx.get("floor")) is int:
+            visited.setdefault(act, {})[position] = ctx["floor"]
+        pending = None
+
+    scenes = scene_records(folder)
+    chapters = {}
+    for act in sorted(snapshots.keys() | scenes.keys()):
+        snapshot = snapshots.get(act, {})
+        nodes, edges = {}, set()
+        floors = visited.get(act, {})
+        rooms = {data["floor"]: (path, data) for path, data in scenes.get(act, [])}
+        rows = [item for row in snapshot.get("rows", []) if isinstance(row, list) for item in row]
+        boss = snapshot.get("boss")
+        if coordinate(boss) not in {coordinate(item) for item in rows}:
+            rows.append(boss)
+        for item in rows:
+            point = coordinate(item)
+            if point is None:
+                continue
+            floor = floors.get(point, point[1] + 1)
+            logged = point in floors or item.get("visited") is True or item.get("current") is True
+            scene_path, scene = rooms.get(floor, (None, {})) if logged else (None, {})
+            kind = item.get("type")
+            room = KINDS.get(kind.casefold(), "event") if isinstance(kind, str) else "event"
+            nodes[point] = (scene.get("room", room), floor, logged, scene_path)
+            children = item.get("children")
+            if isinstance(children, list):
+                edges.update((point, target) for child in children if (target := coordinate(child)) and target != point)
+        full = bool(nodes)
+        if not full:
+            for index, (path, scene) in enumerate(scenes.get(act, [])):
+                nodes[0, index] = (scene["room"], scene["floor"], True, path)
+                if index:
+                    edges.add(((0, index - 1), (0, index)))
+        route = sorted((point for point, node in nodes.items() if node[2]), key=lambda point: (point[1], point[0]))
+        actual = set(zip(route, route[1:]))
+        name = snapshot.get("context", {}).get("act_name")
+        chapters[act] = (name, full, nodes,
+                         [(p, q, (p, q) in actual) for p, q in sorted(edges) if p in nodes and q in nodes])
+    return chapters
+
+
+class RunMap:
+    def __init__(self, parent, launcher, records, open_room):
+        self.launcher, self.records, self.open_room = launcher, records, open_room
+        self.folder = self.scene_folder = self.act = self.selected = None
+        self.chapters = {}
+        self.chapter_ids = []
+        filters = ttk.Frame(parent, padding=(0, 0, 0, 8))
+        filters.pack(fill="x")
+        self.acts = ttk.Combobox(filters, state="readonly", width=29, font=launcher.fonts["body"])
+        self.acts.pack(side="left")
+        self.acts.bind("<<ComboboxSelected>>", self.switch_act)
+        self.tip = ttk.Label(filters, style="Caption.TLabel")
+        self.tip.pack(side="left", padx=12)
+        filters.bind("<Configure>", lambda e: self.tip.configure(wraplength=max(85, e.width - self.acts.winfo_width() - 24)))
+        view = ttk.Frame(parent)
+        self.canvas = Canvas(view, background="#1D2725", highlightthickness=0, height=400)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        scroll = ttk.Scrollbar(view, orient="vertical", command=self.canvas.yview, style="History.Vertical.TScrollbar")
+        scroll.pack(side="right", fill="y")
+        self.canvas.configure(yscrollcommand=scroll.set)
+        self.canvas.bind("<Configure>", self.draw)
+        self.canvas.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(-int(e.delta / 120), "units"))
+        self.legend = Canvas(parent, height=38, background="#1D2725", highlightthickness=0)
+        self.legend.bind("<Configure>", self.draw_legend)
+        actions = ttk.Frame(parent, padding=(0, 7, 0, 0))
+        actions.pack(side="bottom", fill="x")
+        self.legend.pack(side="bottom", fill="x", pady=(3, 0))
+        view.pack(fill="both", expand=True)
+        self.selection = ttk.Label(actions, style="Caption.TLabel")
+        self.selection.pack(side="left")
+        self.room_button = ttk.Button(actions, command=self.show_room)
+        self.room_button.pack(side="right")
+
+    def text(self, key, **values):
+        return self.launcher.text(key, **values)
+
+    def set_run(self, folder, scene_folder, scene):
+        changed = folder != self.folder
+        select_scene = scene_folder != self.scene_folder or changed
+        self.folder = folder
+        self.scene_folder = scene_folder
+        self.chapters = read_chapters(folder, self.records)
+        self.chapter_ids = sorted(self.chapters)
+        labels = []
+        for act in self.chapter_ids:
+            name = self.chapters[act][0]
+            if isinstance(name, dict):
+                language = "zh" if self.launcher.language in ("zh", "zh-TW") else "en"
+                name = name.get(language) or name.get("en")
+            label = self.text("map_act", act=act)
+            labels.append(f"{label} · {name}" if isinstance(name, str) and name else label)
+        self.acts.configure(values=labels)
+        if not labels:
+            self.act = self.selected = None
+            self.acts.set("")
+            self.acts.state(["disabled"])
+        else:
+            self.acts.state(["!disabled", "readonly"])
+            if changed or self.act not in self.chapters:
+                self.act = self.chapter_ids[-1]
+                self.selected = None
+            if select_scene and scene and scene.get("act") in self.chapters:
+                self.act = scene["act"]
+                self.selected = next((p for p, data in self.chapters[self.act][2].items() if data[3] == scene_folder), None)
+            self.acts.current(self.chapter_ids.index(self.act))
+        self.update_labels()
+        self.draw()
+        self.draw_legend()
+
+    def switch_act(self, _event):
+        index = self.acts.current()
+        if 0 <= index < len(self.chapter_ids):
+            self.act = self.chapter_ids[index]
+            self.selected = None
+            self.acts.selection_clear()
+            self.canvas.yview_moveto(0)
+            self.update_labels()
+            self.draw()
+
+    def update_labels(self):
+        label = self.chapters.get(self.act)
+        self.tip.configure(text=self.text("map_full_hint" if label and label[1] else "map_archive_hint") if label else "")
+        node = label[2].get(self.selected) if label else None
+        self.selection.configure(text=(f"{self.text('map_floor', floor=node[1])} · {self.room_name(node[0])}"
+                                       if node else ""))
+        self.room_button.configure(text=self.text("map_open_room"))
+        self.room_button.state(["!disabled"] if node and node[3] else ["disabled"])
+
+    def room_name(self, room):
+        return self.text("map_start" if room == "start" else "room_" + room)
+
+    def select_node(self, point):
+        self.selected = point
+        self.update_labels()
+        self.draw()
+
+    def show_room(self):
+        node = self.chapters.get(self.act, (None, None, {}, []))[2].get(self.selected)
+        if node and node[3]:
+            self.open_room(node[3])
+
+    def draw(self, _event=None):
+        view = self.canvas
+        view.delete("all")
+        width, height = view.winfo_width(), view.winfo_height()
+        if width < 100 or height < 50:
+            return
+        chapter = self.chapters.get(self.act)
+        if not chapter or not chapter[2]:
+            view.create_text(width / 2, height / 2, text=self.text("map_empty"), fill="#AAC0B5",
+                             font=self.launcher.fonts["body"], width=width - 30)
+            view.configure(scrollregion=(0, 0, width, height))
+            return
+        _, full, nodes, edges = chapter
+        columns, rows = sorted({col for col, _ in nodes}), sorted({row for _, row in nodes})
+        content_height = max(height, 21 * len(rows) + 36)
+        pitch = min(55, (content_height - 44) / max(1, len(rows) - 1))
+        side = 55
+        xs = {col: side + (width - 2 * side) * i / max(1, len(columns) - 1) for i, col in enumerate(columns)}
+        top = max(22, (content_height - pitch * (len(rows) - 1)) / 2)
+        ys = {row: top + pitch * i for i, row in enumerate(reversed(rows))}
+        positions = {p: (xs[p[0]] if len(columns) > 1 else width / 2, ys[p[1]]) for p in nodes}
+        view.configure(scrollregion=(0, 0, width, content_height))
+        for row in rows:
+            floor = row + 1 if full else nodes[0, row][1]
+            view.create_text(19, ys[row], text=str(floor), fill="#A4B8AD", font=self.launcher.fonts["small"])
+            view.create_line(33, ys[row], width - 22, ys[row], fill="#253430")
+        for left, right, reached in sorted(edges, key=lambda edge: edge[2]):
+            view.create_line(*positions[left], *positions[right], fill="#A4DE9D" if reached else "#536963",
+                             width=3 if reached else 1, dash=() if reached else (3, 3))
+        for point, (room, _, reached, _) in nodes.items():
+            x, y = positions[point]
+            tag = f"room_{point[0]}_{point[1]}"
+            radius = 10
+            outline = "#C9EEAB" if reached else "#607872"
+            if self.selected == point:
+                view.create_oval(x-14, y-14, x+14, y+14, outline="#D7F5C0", width=2, tags=tag)
+            view.create_oval(x-radius, y-radius, x+radius, y+radius, fill="#2E423A" if reached else "#23312D",
+                             width=2 if reached else 1, outline=outline, tags=tag)
+            self.icon(room, x, y, tag)
+            view.tag_bind(tag, "<Button-1>", lambda _event, point=point: self.select_node(point))
+            view.tag_bind(tag, "<Enter>", lambda _event: view.configure(cursor="hand2"))
+            view.tag_bind(tag, "<Leave>", lambda _event: view.configure(cursor=""))
+
+    def draw_legend(self, _event=None):
+        view = self.legend
+        view.delete("all")
+        if not self.chapters:
+            return
+        font = self.launcher.fonts["small"]
+        width = view.winfo_width()
+        x, y = 15, 11
+        for room in COLORS:
+            label = self.room_name(room)
+            size = font.measure(label) + 30
+            if x + size > width and x > 15:
+                x, y = 15, y + 17
+            self.icon(room, x, y, "legend", view)
+            view.create_text(x + 12, y, text=label, fill="#AAC0B5", font=font, anchor="w")
+            x += size
+
+    def icon(self, room, x, y, tag, canvas=None):
+        canvas, color = canvas or self.canvas, COLORS[room]
+        if room == "battle":
+            canvas.create_line(x-4, y-5, x+4, y+4, x-1, y+4, fill=color, width=2, tags=tag)
+            canvas.create_line(x+4, y-5, x-4, y+4, x+1, y+4, fill=color, width=2, tags=tag)
+        elif room in ("elite", "boss"):
+            if room == "elite":
+                canvas.create_polygon(x-5, y, x, y-5, x+5, y, x, y+5, fill=color, tags=tag)
+            else:
+                canvas.create_polygon(x-5, y+3, x-6, y-4, x-2, y-1, x, y-6, x+2, y-1, x+6, y-4, x+5, y+3,
+                                      fill=color, tags=tag)
+        elif room == "chest":
+            canvas.create_rectangle(x-5, y-4, x+5, y+4, outline=color, tags=tag)
+            canvas.create_line(x-5, y, x+5, y, fill=color, tags=tag)
+            canvas.create_line(x, y-1, x, y+2, fill=color, width=2, tags=tag)
+        elif room == "rest":
+            canvas.create_polygon(x, y-6, x+5, y+1, x+2, y+5, x-3, y+5, x-5, y+1, x-2, y-3, x-1, y+2,
+                                  fill=color, tags=tag)
+        else:
+            symbol = {"shop": "$", "event": "?", "start": "●"}[room]
+            canvas.create_text(x, y-1, text=symbol, fill=color, font=self.launcher.fonts["small_bold"], tags=tag)

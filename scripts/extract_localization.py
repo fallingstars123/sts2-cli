@@ -1,40 +1,76 @@
 #!/usr/bin/env python3
 """Refresh official English/Chinese tables from the installed Godot PCK."""
 import argparse
+from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
 import struct
 
 
+def entries(stream):
+    def read(fmt):
+        return struct.unpack(fmt, stream.read(struct.calcsize(fmt)))
+
+    magic, version, _, _, _, flags = read('<6I')
+    if magic != 0x43504447 or version not in (2, 3) or flags & 1:
+        raise ValueError('Expected an unencrypted Godot PCK v2 or v3')
+    base, = read('<Q')
+    if version == 3:
+        directory, = read('<Q')
+        stream.seek(directory)
+    else:
+        stream.seek(64, 1)
+    count, = read('<I')
+    for _ in range(count):
+        length, = read('<I')
+        name = stream.read(length).rstrip(b'\0').decode('utf-8')
+        offset, size = read('<QQ')
+        digest = stream.read(16)
+        entry_flags, = read('<I')
+        yield name.removeprefix('res://'), base + offset, size, digest, entry_flags
+
+
+@lru_cache(maxsize=2)
+def portrait_index(pck, _modified):
+    prefix = '.godot/imported/char_select_'
+    portraits = {}
+    with pck.open('rb') as stream:
+        for name, offset, size, digest, flags in entries(stream):
+            if name.startswith(prefix) and '.png-' in name and name.endswith('.ctex') and not flags and size < 512_000:
+                character = name.removeprefix(prefix).split('.png-', 1)[0]
+                portraits[character] = offset, size, digest
+    return portraits
+
+
+def portrait(pck, character):
+    entry = portrait_index(pck, pck.stat().st_mtime_ns).get(character.casefold())
+    if not entry:
+        return None
+    offset, size, digest = entry
+    with pck.open('rb') as stream:
+        stream.seek(offset)
+        data = stream.read(size)
+    if hashlib.md5(data).digest() != digest or not data.startswith(b'GST2'):
+        return None
+    start = data.find(b'RIFF', 4, 90)
+    if start != -1 and data[start + 8:start + 12] == b'WEBP':
+        length = int.from_bytes(data[start + 4:start + 8], 'little') + 8
+        return data[start:start + length] if start + length <= len(data) else None
+    start = data.find(b'\x89PNG\r\n\x1a\n', 4, 90)
+    return data[start:] if start != -1 else None
+
+
 def extract(pck: Path, root: Path) -> int:
     tables = []
     with pck.open('rb') as stream:
-        def read(fmt):
-            return struct.unpack(fmt, stream.read(struct.calcsize(fmt)))
-
-        magic, version, _, _, _, flags = read('<6I')
-        if magic != 0x43504447 or version not in (2, 3) or flags & 1:
-            raise ValueError('Expected an unencrypted Godot PCK v2 or v3')
-        base, = read('<Q')
-        if version == 3:
-            directory, = read('<Q')
-            stream.seek(directory)
-        else:
-            stream.seek(64, 1)
-        count, = read('<I')
-        for _ in range(count):
-            length, = read('<I')
-            name = stream.read(length).rstrip(b'\0').decode('utf-8')
-            offset, size = read('<QQ')
-            digest = stream.read(16)
-            entry_flags, = read('<I')
-            parts = name.removeprefix('res://').split('/')
+        for name, offset, size, digest, entry_flags in entries(stream):
+            parts = name.split('/')
             if (len(parts) == 3 and parts[0] == 'localization'
                     and parts[1] in ('eng', 'zhs') and parts[2].endswith('.json')):
                 if entry_flags:
                     raise ValueError(f'Unsupported PCK entry flags: {name}')
-                tables.append((parts, base + offset, size, digest))
+                tables.append((parts, offset, size, digest))
         # Validate all tables before replacing any files.
         contents = []
         for parts, offset, size, digest in tables:

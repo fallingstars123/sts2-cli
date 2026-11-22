@@ -17,3 +17,4 @@ saves/*
 .env
 /STS2 Runs/
 /STS2 Preferences.json
+/runtime/

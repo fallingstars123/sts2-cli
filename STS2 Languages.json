@@ -106,7 +106,19 @@
       "room_chest": "寶箱",
       "room_event": "事件",
       "room_rest": "休息點",
-      "room_shop": "商店"
+      "room_shop": "商店",
+      "map_tab": "地圖",
+      "map_act": "第 {act} 幕",
+      "map_floor": "第 {floor} 層",
+      "map_start": "出發點",
+      "map_full_hint": "實線標示走過的路線。點選房間查看詳情。",
+      "map_archive_hint": "此紀錄只包含到訪房間。",
+      "map_open_room": "開啟房間紀錄",
+      "map_empty": "此對局暫無地圖。",
+      "about": "關於",
+      "wiki": "角色百科",
+      "latest_hp": "最近記錄生命",
+      "player_stats": "金幣 {gold} · 卡牌 {cards} · 遺物 {relics}"
     }
   },
   "en": {
@@ -216,7 +228,19 @@
       "room_chest": "宝箱",
       "room_event": "イベント",
       "room_rest": "休憩所",
-      "room_shop": "ショップ"
+      "room_shop": "ショップ",
+      "map_tab": "マップ",
+      "map_act": "第 {act} 幕",
+      "map_floor": "{floor} 階",
+      "map_start": "出発地点",
+      "map_full_hint": "実線は通ったルートです。部屋を選ぶと詳細が表示されます。",
+      "map_archive_hint": "訪れた部屋のみ記録されています。",
+      "map_open_room": "部屋の記録を開く",
+      "map_empty": "このランのマップはありません。",
+      "about": "このアプリについて",
+      "wiki": "キャラクター Wiki",
+      "latest_hp": "最後に記録された HP",
+      "player_stats": "ゴールド {gold} · カード {cards} · レリック {relics}"
     }
   },
   "ko": {
@@ -323,7 +347,19 @@
       "room_chest": "보물 상자",
       "room_event": "이벤트",
       "room_rest": "휴식 장소",
-      "room_shop": "상점"
+      "room_shop": "상점",
+      "map_tab": "지도",
+      "map_act": "{act}막",
+      "map_floor": "{floor}층",
+      "map_start": "출발점",
+      "map_full_hint": "실선은 지나온 경로입니다. 방을 선택해 세부 정보를 보세요.",
+      "map_archive_hint": "방문한 방만 기록되어 있습니다.",
+      "map_open_room": "방 기록 열기",
+      "map_empty": "이 플레이의 지도 기록이 없습니다.",
+      "about": "정보",
+      "wiki": "캐릭터 위키",
+      "latest_hp": "마지막 기록 HP",
+      "player_stats": "골드 {gold} · 카드 {cards} · 유물 {relics}"
     }
   },
   "es": {
@@ -430,7 +466,19 @@
       "room_chest": "Cofre",
       "room_event": "Evento",
       "room_rest": "Descanso",
-      "room_shop": "Tienda"
+      "room_shop": "Tienda",
+      "map_tab": "Mapa",
+      "map_act": "Acto {act}",
+      "map_floor": "Piso {floor}",
+      "map_start": "Inicio",
+      "map_full_hint": "Las líneas sólidas marcan tu ruta. Elige una sala para ver los detalles.",
+      "map_archive_hint": "Este archivo incluye solo las salas visitadas.",
+      "map_open_room": "Abrir registro de sala",
+      "map_empty": "Esta partida no tiene un mapa registrado.",
+      "about": "Acerca de",
+      "wiki": "Wiki del personaje",
+      "latest_hp": "Últimos PV registrados",
+      "player_stats": "Oro {gold} · Cartas {cards} · Reliquias {relics}"
     }
   },
   "fr": {
@@ -537,7 +585,19 @@
       "room_chest": "Coffre",
       "room_event": "Événement",
       "room_rest": "Repos",
-      "room_shop": "Boutique"
+      "room_shop": "Boutique",
+      "map_tab": "Carte",
+      "map_act": "Acte {act}",
+      "map_floor": "Étage {floor}",
+      "map_start": "Départ",
+      "map_full_hint": "Les traits pleins marquent votre trajet. Sélectionnez une salle pour les détails.",
+      "map_archive_hint": "Cette archive contient uniquement les salles visitées.",
+      "map_open_room": "Ouvrir le journal de la salle",
+      "map_empty": "Aucune carte enregistrée pour cette partie.",
+      "about": "À propos",
+      "wiki": "Wiki du personnage",
+      "latest_hp": "Derniers PV relevés",
+      "player_stats": "Or {gold} · Cartes {cards} · Reliques {relics}"
     }
   },
   "de": {
@@ -644,7 +704,19 @@
       "room_chest": "Truhe",
       "room_event": "Ereignis",
       "room_rest": "Rast",
-      "room_shop": "Laden"
+      "room_shop": "Laden",
+      "map_tab": "Karte",
+      "map_act": "Akt {act}",
+      "map_floor": "Ebene {floor}",
+      "map_start": "Start",
+      "map_full_hint": "Durchgezogene Linien zeigen deinen Weg. Wähle einen Raum für Details.",
+      "map_archive_hint": "Dieses Archiv enthält nur besuchte Räume.",
+      "map_open_room": "Raumverlauf öffnen",
+      "map_empty": "Für diesen Lauf wurde keine Karte gespeichert.",
+      "about": "Über",
+      "wiki": "Charakter-Wiki",
+      "latest_hp": "Zuletzt erfasste LP",
+      "player_stats": "Gold {gold} · Karten {cards} · Relikte {relics}"
     }
   },
   "pt-BR": {
@@ -751,7 +823,19 @@
       "room_chest": "Baú",
       "room_event": "Evento",
       "room_rest": "Descanso",
-      "room_shop": "Loja"
+      "room_shop": "Loja",
+      "map_tab": "Mapa",
+      "map_act": "Ato {act}",
+      "map_floor": "Andar {floor}",
+      "map_start": "Início",
+      "map_full_hint": "Linhas contínuas mostram seu caminho. Selecione uma sala para ver os detalhes.",
+      "map_archive_hint": "Este arquivo contém apenas as salas visitadas.",
+      "map_open_room": "Abrir registro da sala",
+      "map_empty": "Não há mapa salvo para esta partida.",
+      "about": "Sobre",
+      "wiki": "Wiki do personagem",
+      "latest_hp": "Últimos PV registrados",
+      "player_stats": "Ouro {gold} · Cartas {cards} · Relíquias {relics}"
     }
   },
   "it": {
@@ -858,7 +942,19 @@
       "room_chest": "Scrigno",
       "room_event": "Evento",
       "room_rest": "Riposo",
-      "room_shop": "Negozio"
+      "room_shop": "Negozio",
+      "map_tab": "Mappa",
+      "map_act": "Atto {act}",
+      "map_floor": "Piano {floor}",
+      "map_start": "Partenza",
+      "map_full_hint": "Le linee continue indicano il percorso. Seleziona una stanza per i dettagli.",
+      "map_archive_hint": "Questo archivio contiene solo le stanze visitate.",
+      "map_open_room": "Apri registro stanza",
+      "map_empty": "Nessuna mappa registrata per questa partita.",
+      "about": "Informazioni",
+      "wiki": "Wiki del personaggio",
+      "latest_hp": "Ultimi PS registrati",
+      "player_stats": "Oro {gold} · Carte {cards} · Reliquie {relics}"
     }
   },
   "ru": {
@@ -965,7 +1061,19 @@
       "room_chest": "Сундук",
       "room_event": "Событие",
       "room_rest": "Привал",
-      "room_shop": "Магазин"
+      "room_shop": "Магазин",
+      "map_tab": "Карта",
+      "map_act": "Акт {act}",
+      "map_floor": "Этаж {floor}",
+      "map_start": "Начало",
+      "map_full_hint": "Сплошные линии показывают маршрут. Выберите комнату, чтобы увидеть подробности.",
+      "map_archive_hint": "В архиве есть только посещённые комнаты.",
+      "map_open_room": "Открыть журнал комнаты",
+      "map_empty": "Карта этого забега не записана.",
+      "about": "О программе",
+      "wiki": "Вики персонажа",
+      "latest_hp": "Последнее записанное ОЗ",
+      "player_stats": "Золото {gold} · Карты {cards} · Реликвии {relics}"
     }
   },
   "ar": {
@@ -1072,7 +1180,19 @@
       "room_chest": "صندوق",
       "room_event": "حدث",
       "room_rest": "راحة",
-      "room_shop": "متجر"
+      "room_shop": "متجر",
+      "map_tab": "الخريطة",
+      "map_act": "الفصل {act}",
+      "map_floor": "الطابق {floor}",
+      "map_start": "البداية",
+      "map_full_hint": "تُظهر الخطوط المتصلة مسارك. اختر غرفة لعرض التفاصيل.",
+      "map_archive_hint": "يتضمن هذا الأرشيف الغرف التي زرتها فقط.",
+      "map_open_room": "فتح سجل الغرفة",
+      "map_empty": "لا توجد خريطة مسجلة لهذه الجولة.",
+      "about": "حول",
+      "wiki": "ويكي الشخصية",
+      "latest_hp": "آخر صحة مسجلة",
+      "player_stats": "ذهب {gold} · بطاقات {cards} · آثار {relics}"
     }
   },
   "hi": {
@@ -1179,7 +1299,19 @@
       "room_chest": "संदूक",
       "room_event": "घटना",
       "room_rest": "विश्राम",
-      "room_shop": "दुकान"
+      "room_shop": "दुकान",
+      "map_tab": "नक्शा",
+      "map_act": "अध्याय {act}",
+      "map_floor": "मंज़िल {floor}",
+      "map_start": "शुरुआत",
+      "map_full_hint": "ठोस रेखाएँ आपका रास्ता दिखाती हैं। विवरण के लिए कमरा चुनें।",
+      "map_archive_hint": "इस रिकॉर्ड में केवल देखे गए कमरे हैं।",
+      "map_open_room": "कमरे का रिकॉर्ड खोलें",
+      "map_empty": "इस खेल के लिए कोई नक्शा दर्ज नहीं है।",
+      "about": "परिचय",
+      "wiki": "पात्र विकि",
+      "latest_hp": "अंतिम दर्ज HP",
+      "player_stats": "सोना {gold} · कार्ड {cards} · अवशेष {relics}"
     }
   },
   "id": {
@@ -1286,7 +1418,19 @@
       "room_chest": "Peti",
       "room_event": "Peristiwa",
       "room_rest": "Istirahat",
-      "room_shop": "Toko"
+      "room_shop": "Toko",
+      "map_tab": "Peta",
+      "map_act": "Babak {act}",
+      "map_floor": "Lantai {floor}",
+      "map_start": "Mulai",
+      "map_full_hint": "Garis utuh menunjukkan jalurmu. Pilih ruangan untuk melihat detail.",
+      "map_archive_hint": "Arsip ini hanya memuat ruangan yang dikunjungi.",
+      "map_open_room": "Buka catatan ruangan",
+      "map_empty": "Tidak ada peta yang direkam untuk permainan ini.",
+      "about": "Tentang",
+      "wiki": "Wiki karakter",
+      "latest_hp": "HP terakhir tercatat",
+      "player_stats": "Emas {gold} · Kartu {cards} · Relik {relics}"
     }
   },
   "tr": {
@@ -1393,7 +1537,19 @@
       "room_chest": "Sandık",
       "room_event": "Olay",
       "room_rest": "Dinlenme",
-      "room_shop": "Dükkân"
+      "room_shop": "Dükkân",
+      "map_tab": "Harita",
+      "map_act": "{act}. Perde",
+      "map_floor": "{floor}. Kat",
+      "map_start": "Başlangıç",
+      "map_full_hint": "Düz çizgiler rotanı gösterir. Ayrıntılar için bir oda seç.",
+      "map_archive_hint": "Bu arşiv yalnızca ziyaret edilen odaları içerir.",
+      "map_open_room": "Oda kaydını aç",
+      "map_empty": "Bu koşunun kayıtlı haritası yok.",
+      "about": "Hakkında",
+      "wiki": "Karakter vikisi",
+      "latest_hp": "Son kaydedilen can",
+      "player_stats": "Altın {gold} · Kart {cards} · Yadigâr {relics}"
     }
   },
   "vi": {
@@ -1500,7 +1656,19 @@
       "room_chest": "Rương",
       "room_event": "Sự kiện",
       "room_rest": "Nghỉ ngơi",
-      "room_shop": "Cửa hàng"
+      "room_shop": "Cửa hàng",
+      "map_tab": "Bản đồ",
+      "map_act": "Chương {act}",
+      "map_floor": "Tầng {floor}",
+      "map_start": "Bắt đầu",
+      "map_full_hint": "Đường liền biểu thị lộ trình đã đi. Chọn phòng để xem chi tiết.",
+      "map_archive_hint": "Bản lưu chỉ có các phòng đã ghé qua.",
+      "map_open_room": "Mở nhật ký phòng",
+      "map_empty": "Lượt chơi này chưa có bản đồ.",
+      "about": "Giới thiệu",
+      "wiki": "Wiki nhân vật",
+      "latest_hp": "HP ghi nhận gần nhất",
+      "player_stats": "Vàng {gold} · Bài {cards} · Di vật {relics}"
     }
   },
   "th": {
@@ -1607,7 +1775,19 @@
       "room_chest": "หีบสมบัติ",
       "room_event": "เหตุการณ์",
       "room_rest": "พัก",
-      "room_shop": "ร้านค้า"
+      "room_shop": "ร้านค้า",
+      "map_tab": "แผนที่",
+      "map_act": "บทที่ {act}",
+      "map_floor": "ชั้น {floor}",
+      "map_start": "เริ่มต้น",
+      "map_full_hint": "เส้นทึบแสดงเส้นทางที่เดิน เลือกห้องเพื่อดูรายละเอียด",
+      "map_archive_hint": "บันทึกนี้มีเฉพาะห้องที่เคยเข้า",
+      "map_open_room": "เปิดบันทึกห้อง",
+      "map_empty": "ไม่มีแผนที่สำหรับรอบนี้",
+      "about": "เกี่ยวกับ",
+      "wiki": "วิกิตัวละคร",
+      "latest_hp": "พลังชีวิตที่บันทึกล่าสุด",
+      "player_stats": "ทอง {gold} · การ์ด {cards} · วัตถุโบราณ {relics}"
     }
   }
 }

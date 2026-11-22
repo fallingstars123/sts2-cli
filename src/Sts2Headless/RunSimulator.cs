@@ -2986,6 +2986,8 @@ public class RunSimulator
             ["floor"] = _runState.ActFloor,
             ["room_type"] = _runState.CurrentRoom?.RoomType.ToString(),
         };
+        if (_runState.CurrentMapCoord is { } position)
+            ctx["map_coord"] = new Dictionary<string, int> { ["col"] = position.col, ["row"] = position.row };
 
         // Boss encounter info — use BossEncounter?.Id?.Entry
         try

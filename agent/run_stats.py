@@ -103,8 +103,13 @@ def estimated_wins(runs, position):
 
 
 def run_timeline(folder):
+    return run_progress(folder)[0]
+
+
+def run_progress(folder):
     """Align health and progress snapshots to issued gameplay actions."""
     points = {}
+    latest = {}
     step = 0
     for record in game_records(folder):
         data = record.get("data")
@@ -118,7 +123,8 @@ def run_timeline(folder):
         position = stage(data.get("context"))
         if not isinstance(player, dict) or not position:
             continue
+        latest = {**latest, **player, "act": position[0], "floor": position[1]}
         hp, maximum = player.get("hp"), player.get("max_hp")
         if type(hp) is int and type(maximum) is int and maximum > 0:
             points[step] = (step, max(0, min(100, 100 * hp / maximum)), position)
-    return list(points.values())
+    return list(points.values()), latest

@@ -29,6 +29,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "python"))
 sys.path.insert(0, os.path.join(ROOT, "agent"))
 from game_log import GameLogger  # noqa: E402
+from portable_runtime import engine_command  # noqa: E402
 from run_expression import expression_prompt, profile_for, reply_message  # noqa: E402
 from run_stats import completed_runs, estimated_wins, similar_runs, stage  # noqa: E402
 
@@ -425,7 +426,7 @@ def parse_reply(text):
 class Engine:
     def __init__(self, verbose):
         self.proc = subprocess.Popen(
-            ["dotnet", "run", "--no-build", "--project", PROJECT],
+            engine_command(ROOT, "dotnet", PROJECT),
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=None if verbose else subprocess.DEVNULL,
             text=True, encoding="utf-8", bufsize=1)
@@ -488,6 +489,7 @@ def play(args):
         logger.log_state(s)
         last_error = None
         prev_state = s
+        archived_acts = set()
         for step in range(args.max_steps):
             if s.get("type") == "error":
                 print(f"  ! engine error: {s.get('message')}")
@@ -504,6 +506,15 @@ def play(args):
                 break
             prev_state = s
             text, opts = build_options(s)
+            chapter = (s.get("context") or {}).get("act")
+            full_map = {}
+            if chapter and (chapter not in archived_acts or (d == "map_select" and len(opts) > 1)):
+                map_cmd = {"cmd": "get_map"}
+                logger.log_action(map_cmd)
+                full_map = eng.send(map_cmd)
+                logger.log_state(full_map)
+                if full_map.get("type") == "map" and full_map.get("rows"):
+                    archived_acts.add(chapter)
             proposed_plan = None
             message = ""
             if not opts and d != "card_select":
@@ -515,10 +526,6 @@ def play(args):
                 profile = profile_for(preferences_path, persona_id, provider, ui_language)
                 sections = [f"Character: {args.character} · Ascension: {args.ascension}", text]
                 if d == "map_select":
-                    map_cmd = {"cmd": "get_map"}
-                    logger.log_action(map_cmd)
-                    full_map = eng.send(map_cmd)
-                    logger.log_state(full_map)
                     sections.append(map_lookahead(s.get("choices") or [], full_map))
                 sections.append(memory.prompt(s))
                 wins, total = estimated_wins(cohort, stage(s.get("context")))
