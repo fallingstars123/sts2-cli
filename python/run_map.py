@@ -14,6 +14,8 @@ COLORS = {"battle": "#F29F95", "elite": "#F0AA7E", "boss": "#F8D393", "chest": "
 LEGEND_ROOMS = ("event", "shop", "chest", "rest", "battle", "elite", "boss", "start")
 MAP_BACKGROUND = "#1D2725"
 NODE_SIZES = {"elite": 25, "boss": 48, "start": 30}
+VISITED = "#C9EEAB"
+ROUTE_OUTLINE = "#131D19"
 
 
 class Chapter(NamedTuple):
@@ -304,12 +306,17 @@ class RunMap:
             x, y = positions[point]
             tag = f"room_{point[0]}_{point[1]}"
             edge = NODE_SIZES.get(room, 20)
-            radius = edge / 2 + 4
+            radius = edge / 2 + 5
             selected = self.selected == point
-            ring = "#89C7EE" if current == point else "#F8D393" if selected else "#9ABC8B" if reached else ""
-            view.create_oval(x-radius, y-radius, x+radius, y+radius, outline=ring,
-                             fill="#293A34" if reached or selected else MAP_BACKGROUND,
-                             width=2 if current == point or selected else 1, tags=tag)
+            circle = x-radius, y-radius, x+radius, y+radius
+            view.create_oval(*circle, outline=ROUTE_OUTLINE if reached else "",
+                             fill="#293A34" if reached or selected else MAP_BACKGROUND, width=5, tags=tag)
+            if reached:
+                view.create_oval(*circle, outline=VISITED, width=2.5, tags=(tag, "visited_room"))
+            if current == point or selected:
+                border = radius + 4 if reached else radius
+                view.create_oval(x-border, y-border, x+border, y+border, width=2,
+                                 outline="#89C7EE" if current == point else "#F8D393", tags=tag)
             self.icon(room, x, y, tag, edge=edge, detail=chapter.special_art.get(point))
             view.tag_bind(tag, "<Button-1>", lambda _event, point=point: self.select_node(point))
             view.tag_bind(tag, "<Enter>", lambda _event: view.configure(cursor="hand2"))
@@ -332,10 +339,14 @@ class RunMap:
         if first >= last:
             return
         ux, uy = dx / length, dy / length
+        if reached:
+            points = x + ux * first, y + uy * first, x + ux * last, y + uy * last
+            self.canvas.create_line(*points, fill=ROUTE_OUTLINE, width=6, capstyle="round")
+            self.canvas.create_line(*points, fill=VISITED, width=3, capstyle="round", tags="route")
+            return
         count = max(1, round((last - first) / 8))
         spacing = (last - first) / count
         seed = left[0] * 17 + left[1] * 5 + right[0] * 13 + right[1] * 3
-        color = "#C9EEAB" if reached else "#6A8679"
         for index in range(count):
             phase = (seed + index * 7) % 11
             start = first + index * spacing + spacing * (.15 + phase / 55)
@@ -343,8 +354,7 @@ class RunMap:
             offset = (phase - 5) * .17
             self.canvas.create_line(x + ux * start - uy * offset, y + uy * start + ux * offset,
                                     x + ux * end - uy * offset, y + uy * end + ux * offset,
-                                    fill=color, width=2 if reached else 1, capstyle="round",
-                                    tags="route" if reached else "path")
+                                    fill="#6A8679", width=1, capstyle="round", tags="path")
 
     def draw_legend(self, _event=None):
         view = self.legend
