@@ -131,27 +131,12 @@ class GameArt:
         return None
 
     def character_image(self, character, size, portrait=False):
-        override = self.root / "STS2 Portraits" / f"{character}.png" if portrait else None
-        local = override if override and override.is_file() else None
-        return self.photo(("character", character, size, portrait, local),
-                          lambda: self.read_character(character, portrait, local), size, local=local is not None)
+        return self.photo(("character", character, size, portrait),
+                          lambda: self.read_character(character, portrait), size)
 
-    def read_character(self, character, portrait, local):
+    def read_character(self, character, portrait):
         from PIL import Image
 
-        if local:
-            try:
-                with Image.open(local) as image:
-                    region = json.loads(local.with_suffix(".json").read_text(encoding="utf-8")).get("region")
-                    if (isinstance(region, list) and len(region) == 4 and all(type(n) is int for n in region)
-                            and 0 <= region[0] < region[2] <= image.width and 0 <= region[1] < region[3] <= image.height):
-                        return image.crop(region).convert("RGBA")
-                    return image.convert("RGBA")
-            except FileNotFoundError:
-                with Image.open(local) as image:
-                    return image.convert("RGBA")
-            except (OSError, ValueError, AttributeError):
-                pass
         if not self.version:
             return None
         if not portrait:

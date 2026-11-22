@@ -1807,12 +1807,10 @@ class Launcher:
     def show_about(self):
         credits = ("基于 wuhao21/sts2-cli，使用 MIT 许可证。\n"
                    "角色、状态和地图图标 © Mega Crit，从本机 Steam 游戏读取。\n"
-                   "卡牌小图和角色资料来自灰机 Wiki。适用的站点内容采用 CC BY-NC-SA 4.0。\n"
-                   "本地储君站姿取自灰机 Wiki「储君」的 idle_loop。") if engine_language(self.language) == "zh" else (
+                   "卡牌小图和角色资料来自灰机 Wiki。适用的站点内容采用 CC BY-NC-SA 4.0。") if engine_language(self.language) == "zh" else (
                    "Based on wuhao21/sts2-cli under the MIT license.\n"
                    "Character, status, and map art © Mega Crit, read from the local Steam game.\n"
                    "Card badges come from the Huiji STS2 Wiki card navigation page.\n"
-                   "Character references open the wiki. The local Regent pose comes from the Huiji Wiki Regent idle_loop.\n"
                    "Huiji Wiki site content is published under CC BY-NC-SA 4.0 where applicable.")
         messagebox.showinfo(self.text("about"), f"{self.text('window')}\n\n{credits}", parent=self.root)
 
