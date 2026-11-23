@@ -19,17 +19,26 @@ PACKAGE_NAME = "sts2-cli-windows-x64"
 PACKAGE_FILES = (
     "Start STS2.cmd", "STS2 Launcher.pyw", "STS2 Languages.json", "LICENSE", "README.md", "README.zh-CN.md",
     "agent/llm_agent.py", "agent/run_expression.py", "agent/run_stats.py",
+    "agent/steam_mod_agent.py", "agent/steam_mod_archive.py", "agent/steam_mod_memory.py", "agent/steam_mod_tactics.py",
+    "agent/steam_mod_shop.py", "agent/steam_mod_route.py", "agent/steam_mod_draw.py", "agent/steam_mod_sequence.py",
+    "agent/steam_mod_strategy.py", "agent/steam_mod_strategy.json",
+    "agent/steam_mod_prompt.py", "agent/steam_mod_experience.py",
+    "agent/steam_mod_benchmark.py", "agent/steam_mod_token_replay.py",
+    "python/steam_mcp.py",
     "python/play.py", "python/game_log.py", "python/character_catalog.py", "python/game_art.py",
-    "python/portable_runtime.py", "python/run_map.py", "python/wiki_card_icons.py", "scripts/extract_localization.py",
-    "docs/cli.md", "docs/desktop-launcher.md",
+    "python/card_hover.py", "python/inventory_book.py", "python/inventory_catalog.py",
+    "python/scroll_gestures.py",
+    "python/portable_runtime.py", "python/run_map.py", "python/steam_progress.py", "python/steam_window.py", "python/wiki_card_icons.py",
+    "scripts/extract_localization.py",
+    "docs/cli.md", "docs/desktop-launcher.md", "docs/steam-mod.md",
 )
 ENGINE_FILES = ("Sts2Headless.dll", "Sts2Headless.deps.json", "Sts2Headless.runtimeconfig.json", "GodotSharp.dll")
 ENGINE_OUTPUT = Path("src/Sts2Headless/bin/Debug/net9.0")
 
 
-def build(dotnet, project, configuration):
+def build(dotnet, project, configuration, *properties):
     subprocess.run([dotnet, "build", str(project), "--configuration", configuration, "--nologo",
-                    "-p:NuGetAudit=false", "-p:UseAppHost=false"], check=True)
+                    "-p:NuGetAudit=false", "-p:UseAppHost=false", *properties], check=True)
 
 
 def copy_file(source, target):
@@ -61,9 +70,13 @@ def package(args, scratch):
     patcher_sources(patcher)
     build(args.dotnet_sdk, patcher / "Patcher.csproj", "Release")
     build(args.dotnet_sdk, compile_root / "src" / "Sts2Headless" / "Sts2Headless.csproj", "Debug")
+    bridge = compile_root / "src" / "Sts2LiveBridge"
+    build(args.dotnet_sdk, bridge / "Sts2LiveBridge.csproj", "Release", f"-p:Sts2GameDir={game.parent.resolve()}")
 
     for name in PACKAGE_FILES:
         copy_file(ROOT / name, release / name)
+    for name in ("Sts2LiveBridge.dll", "Sts2LiveBridge.json"):
+        copy_file(bridge / "bin" / "Release" / "net9.0" / name, release / "Sts2LiveBridge" / name)
     for language in ("en", "zh"):
         for view in ("launcher", "analysis", "chat", "map"):
             screenshot = Path("docs/screenshots") / f"{view}-{language}.png"

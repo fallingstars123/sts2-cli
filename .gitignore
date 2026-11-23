@@ -20,3 +20,7 @@ saves/*
 /runtime/
 /STS2 Portraits/
 /STS2 Cache/
+*.save
+.env.*
+/agent/_backup_*/
+/STS2 *.zip

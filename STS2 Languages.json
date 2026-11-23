@@ -12,13 +12,15 @@
       "ascension": "進階",
       "model": "模型",
       "key": "API 金鑰",
-      "test": "試跑 20 步",
       "load": "讀取存檔",
       "start": "開始對局",
       "home": "遊玩",
       "running": "對局正在終端機中執行。",
       "installing": "安裝完成後請關閉安裝視窗，再開始對局。",
       "finished": "終端機已關閉，可以開始下一局。",
+      "console_failed": "終端執行失敗，詳情請見終端提示。",
+      "steam_mod_full": "Steam 整局託管",
+      "steam_mod_full_help": "在 Steam 啟用 STS2 Live Bridge 並開啟標準單人對局。{provider} 會從目前畫面接手，直到對局結束或達到操作上限。要停止時，在控制台按 Ctrl+C。API 呼叫可能收費。",
       "missing_key": "請在 API 設定儲存 {provider} 的金鑰。",
       "missing_sdk": "目前的 Python 缺少 {package}。要開啟安裝視窗嗎？",
       "missing_dotnet": "找不到 dotnet。請安裝 .NET 9 SDK。",
@@ -125,7 +127,8 @@
       "live_hp": "即時生命",
       "inventory_deck": "牌組",
       "inventory_relics": "遺物",
-      "inventory_empty": "這局沒有記錄這份清單。"
+      "inventory_empty": "這局沒有記錄這份清單。",
+      "terminal_run": "終端機開局"
     }
   },
   "en": {
@@ -141,13 +144,15 @@
       "ascension": "アセンション",
       "model": "モデル",
       "key": "API キー",
-      "test": "20 ステップ試行",
       "load": "セーブを読み込む",
       "start": "ランを開始",
       "home": "プレイ",
       "running": "ターミナルでランを実行中です。",
       "installing": "インストール完了後にウィンドウを閉じて、ランを開始してください。",
       "finished": "ターミナルが閉じました。次のランを開始できます。",
+      "console_failed": "ターミナルで処理に失敗しました。詳細はターミナルを確認してください。",
+      "steam_mod_full": "Steam 全ラン自動プレイ",
+      "steam_mod_full_help": "Steam で STS2 Live Bridge を有効にしてスタンダードのシングルプレイを開いてください。{provider} が現在の画面から引き継ぎ、ラン終了または操作上限までプレイします。停止するにはコンソールで Ctrl+C を押してください。API の利用料金が発生する場合があります。",
       "missing_key": "API 設定で {provider} のキーを保存してください。",
       "missing_sdk": "この Python に {package} がありません。インストーラーを開きますか？",
       "missing_dotnet": "dotnet が見つかりません。.NET 9 SDK をインストールしてください。",
@@ -254,7 +259,8 @@
       "live_hp": "現在の HP",
       "inventory_deck": "デッキ",
       "inventory_relics": "レリック",
-      "inventory_empty": "このランに記録がありません。"
+      "inventory_empty": "このランに記録がありません。",
+      "terminal_run": "端末でプレイ"
     }
   },
   "ko": {
@@ -267,13 +273,15 @@
       "ascension": "승천",
       "model": "모델",
       "key": "API 키",
-      "test": "20단계 테스트",
       "load": "저장 불러오기",
       "start": "런 시작",
       "home": "플레이",
       "running": "터미널에서 런이 진행 중입니다.",
       "installing": "설치가 끝나면 창을 닫고 런을 시작하세요.",
       "finished": "터미널이 닫혔습니다. 다음 런을 시작할 수 있습니다.",
+      "console_failed": "터미널 작업에 실패했습니다. 터미널에서 세부 정보를 확인하세요.",
+      "steam_mod_full": "Steam 전체 런 자동 플레이",
+      "steam_mod_full_help": "Steam에서 STS2 Live Bridge를 활성화하고 표준 싱글플레이를 여세요. {provider}이 현재 화면에서 이어받아 런 종료 또는 행동 한도까지 진행합니다. 중지하려면 콘솔에서 Ctrl+C를 누르세요. API 요금이 발생할 수 있습니다.",
       "missing_key": "API 설정에 {provider} 키를 저장하세요.",
       "missing_sdk": "현재 Python에 {package} 패키지가 없습니다. 설치 창을 열까요?",
       "missing_dotnet": "dotnet을 찾을 수 없습니다. .NET 9 SDK를 설치하세요.",
@@ -380,7 +388,8 @@
       "live_hp": "실시간 HP",
       "inventory_deck": "덱",
       "inventory_relics": "유물",
-      "inventory_empty": "이 플레이에는 기록이 없습니다."
+      "inventory_empty": "이 플레이에는 기록이 없습니다.",
+      "terminal_run": "터미널에서 플레이"
     }
   },
   "es": {
@@ -393,13 +402,15 @@
       "ascension": "Ascensión",
       "model": "Modelo",
       "key": "Clave API",
-      "test": "Prueba de 20 pasos",
       "load": "Cargar partida",
       "start": "Iniciar partida",
       "home": "Jugar",
       "running": "La partida está abierta en una terminal.",
       "installing": "Cierra el instalador al terminar y empieza la partida.",
       "finished": "Terminal cerrada. Ya puedes empezar otra partida.",
+      "console_failed": "La tarea de la terminal falló. Consulta la terminal para ver los detalles.",
+      "steam_mod_full": "Partida completa en Steam",
+      "steam_mod_full_help": "Abre una partida estándar de un jugador en Steam con STS2 Live Bridge activado. {provider} seguirá desde la pantalla actual hasta el final de la partida o el límite de acciones. Pulsa Ctrl+C en la consola para detenerlo. El uso de la API puede tener coste.",
       "missing_key": "Guarda la clave de {provider} en los ajustes de API.",
       "missing_sdk": "A este Python le falta {package}. ¿Abrir el instalador?",
       "missing_dotnet": "No se encontró dotnet. Instala el SDK de .NET 9.",
@@ -506,7 +517,8 @@
       "live_hp": "PV actuales",
       "inventory_deck": "Mazo",
       "inventory_relics": "Reliquias",
-      "inventory_empty": "Esta partida no tiene elementos registrados aquí."
+      "inventory_empty": "Esta partida no tiene elementos registrados aquí.",
+      "terminal_run": "Jugar en terminal"
     }
   },
   "fr": {
@@ -519,13 +531,15 @@
       "ascension": "Ascension",
       "model": "Modèle",
       "key": "Clé API",
-      "test": "Essai de 20 actions",
       "load": "Charger",
       "start": "Lancer la partie",
       "home": "Jouer",
       "running": "La partie est ouverte dans un terminal.",
       "installing": "Fermez le programme d’installation, puis lancez la partie.",
       "finished": "Terminal fermé. Vous pouvez lancer une autre partie.",
+      "console_failed": "La tâche a échoué. Consultez le terminal pour les détails.",
+      "steam_mod_full": "Partie complète sur Steam",
+      "steam_mod_full_help": "Ouvrez une partie solo standard sur Steam avec STS2 Live Bridge activé. {provider} reprendra depuis l’écran actuel jusqu’à la fin de la partie ou à la limite d’actions. Pour l’arrêter, appuyez sur Ctrl+C dans la console. L’utilisation de l’API peut être facturée.",
       "missing_key": "Enregistrez la clé de {provider} dans les paramètres API.",
       "missing_sdk": "Il manque {package} à cette installation Python. Ouvrir l’installateur ?",
       "missing_dotnet": "dotnet est introuvable. Installez le SDK .NET 9.",
@@ -632,7 +646,8 @@
       "live_hp": "PV actuels",
       "inventory_deck": "Deck",
       "inventory_relics": "Reliques",
-      "inventory_empty": "Aucun élément enregistré ici pour cette partie."
+      "inventory_empty": "Aucun élément enregistré ici pour cette partie.",
+      "terminal_run": "Jouer dans le terminal"
     }
   },
   "de": {
@@ -645,13 +660,15 @@
       "ascension": "Aufstieg",
       "model": "Modell",
       "key": "API-Schlüssel",
-      "test": "20 Schritte testen",
       "load": "Spielstand laden",
       "start": "Partie starten",
       "home": "Spielen",
       "running": "Die Partie läuft in einem Terminal.",
       "installing": "Schließe nach der Installation das Fenster und starte die Partie.",
       "finished": "Terminal geschlossen. Die nächste Partie kann starten.",
+      "console_failed": "Die Aufgabe ist fehlgeschlagen. Details stehen im Terminal.",
+      "steam_mod_full": "Kompletter Steam-Durchlauf",
+      "steam_mod_full_help": "Öffne in Steam einen Standard-Einzelspielerdurchlauf mit aktiviertem STS2 Live Bridge. {provider} übernimmt am aktuellen Bildschirm bis zum Ende des Durchlaufs oder bis zum Aktionslimit. Zum Anhalten drücke Strg+C in der Konsole. API-Nutzung kann Kosten verursachen.",
       "missing_key": "Speichere den Schlüssel für {provider} in den API-Einstellungen.",
       "missing_sdk": "In dieser Python-Installation fehlt {package}. Installer öffnen?",
       "missing_dotnet": "dotnet wurde nicht gefunden. Installiere das .NET 9 SDK.",
@@ -758,7 +775,8 @@
       "live_hp": "Aktuelle LP",
       "inventory_deck": "Deck",
       "inventory_relics": "Relikte",
-      "inventory_empty": "Für diesen Lauf sind hier keine Einträge erfasst."
+      "inventory_empty": "Für diesen Lauf sind hier keine Einträge erfasst.",
+      "terminal_run": "Im Terminal spielen"
     }
   },
   "pt-BR": {
@@ -771,13 +789,15 @@
       "ascension": "Ascensão",
       "model": "Modelo",
       "key": "Chave da API",
-      "test": "Teste de 20 passos",
       "load": "Carregar partida",
       "start": "Iniciar partida",
       "home": "Jogar",
       "running": "A partida está aberta em um terminal.",
       "installing": "Feche o instalador ao concluir e inicie a partida.",
       "finished": "Terminal fechado. Você pode iniciar a próxima partida.",
+      "console_failed": "A tarefa falhou. Veja os detalhes no terminal.",
+      "steam_mod_full": "Partida completa no Steam",
+      "steam_mod_full_help": "Abra uma partida padrão para um jogador no Steam com STS2 Live Bridge ativado. O {provider} assume a partir da tela atual até o fim da partida ou o limite de ações. Para parar, pressione Ctrl+C no console. O uso da API pode gerar custos.",
       "missing_key": "Salve a chave de {provider} nas configurações da API.",
       "missing_sdk": "Esta instalação do Python não tem {package}. Abrir o instalador?",
       "missing_dotnet": "dotnet não encontrado. Instale o SDK do .NET 9.",
@@ -884,7 +904,8 @@
       "live_hp": "PV atuais",
       "inventory_deck": "Baralho",
       "inventory_relics": "Relíquias",
-      "inventory_empty": "Esta partida não tem itens registrados aqui."
+      "inventory_empty": "Esta partida não tem itens registrados aqui.",
+      "terminal_run": "Jogar no terminal"
     }
   },
   "it": {
@@ -897,13 +918,15 @@
       "ascension": "Ascensione",
       "model": "Modello",
       "key": "Chiave API",
-      "test": "Prova di 20 azioni",
       "load": "Carica partita",
       "start": "Avvia partita",
       "home": "Gioca",
       "running": "La partita è aperta in un terminale.",
       "installing": "Al termine, chiudi l’installazione e avvia la partita.",
       "finished": "Terminale chiuso. Puoi avviare un’altra partita.",
+      "console_failed": "L’operazione non è riuscita. Controlla i dettagli nel terminale.",
+      "steam_mod_full": "Partita completa su Steam",
+      "steam_mod_full_help": "Apri una partita standard per giocatore singolo su Steam con STS2 Live Bridge attivo. {provider} prosegue dalla schermata attuale fino alla fine della partita o al limite di azioni. Per fermarlo, premi Ctrl+C nella console. L’uso dell’API può comportare costi.",
       "missing_key": "Salva la chiave di {provider} nelle impostazioni API.",
       "missing_sdk": "In questa installazione di Python manca {package}. Aprire il programma di installazione?",
       "missing_dotnet": "dotnet non trovato. Installa .NET 9 SDK.",
@@ -1010,7 +1033,8 @@
       "live_hp": "PS attuali",
       "inventory_deck": "Mazzo",
       "inventory_relics": "Reliquie",
-      "inventory_empty": "Nessun elemento registrato per questa partita."
+      "inventory_empty": "Nessun elemento registrato per questa partita.",
+      "terminal_run": "Gioca nel terminale"
     }
   },
   "ru": {
@@ -1023,13 +1047,15 @@
       "ascension": "Возвышение",
       "model": "Модель",
       "key": "Ключ API",
-      "test": "Проба на 20 ходов",
       "load": "Загрузить игру",
       "start": "Начать забег",
       "home": "Играть",
       "running": "Забег идёт в терминале.",
       "installing": "После установки закройте её окно и начните забег.",
       "finished": "Терминал закрыт. Можно начать следующий забег.",
+      "console_failed": "Задача завершилась с ошибкой. Подробности в терминале.",
+      "steam_mod_full": "Полный забег в Steam",
+      "steam_mod_full_help": "Откройте стандартный одиночный забег в Steam с включённым STS2 Live Bridge. {provider} продолжит с текущего экрана до конца забега или лимита действий. Для остановки нажмите Ctrl+C в консоли. Использование API может быть платным.",
       "missing_key": "Сохраните ключ {provider} в настройках API.",
       "missing_sdk": "В этом Python нет пакета {package}. Открыть установщик?",
       "missing_dotnet": "dotnet не найден. Установите .NET 9 SDK.",
@@ -1136,7 +1162,8 @@
       "live_hp": "Текущие ОЗ",
       "inventory_deck": "Колода",
       "inventory_relics": "Реликвии",
-      "inventory_empty": "В этом забеге здесь нет записей."
+      "inventory_empty": "В этом забеге здесь нет записей.",
+      "terminal_run": "Играть в терминале"
     }
   },
   "ar": {
@@ -1149,13 +1176,15 @@
       "ascension": "مستوى الصعود",
       "model": "النموذج",
       "key": "مفتاح API",
-      "test": "اختبار 20 خطوة",
       "load": "تحميل الحفظ",
       "start": "بدء الجولة",
       "home": "العب",
       "running": "الجولة مفتوحة في نافذة الطرفية.",
       "installing": "أغلق نافذة التثبيت بعد انتهائه ثم ابدأ الجولة.",
       "finished": "أُغلقت الطرفية. يمكنك بدء الجولة التالية.",
+      "console_failed": "فشل تنفيذ المهمة. راجع الطرفية للاطلاع على التفاصيل.",
+      "steam_mod_full": "جولة كاملة على Steam",
+      "steam_mod_full_help": "افتح جولة فردية قياسية في Steam بعد تفعيل STS2 Live Bridge. يتابع {provider} اللعب من الشاشة الحالية حتى نهاية الجولة أو بلوغ حد الإجراءات. للإيقاف، اضغط Ctrl+C في وحدة التحكم. قد تُفرض رسوم على استخدام API.",
       "missing_key": "احفظ مفتاح {provider} في إعدادات API.",
       "missing_sdk": "تثبيت Python هذا لا يتضمن {package}. هل تريد فتح المثبّت؟",
       "missing_dotnet": "لم يُعثر على dotnet. ثبّت حزمة .NET 9 SDK.",
@@ -1262,7 +1291,8 @@
       "live_hp": "الصحة الحالية",
       "inventory_deck": "الرزمة",
       "inventory_relics": "الآثار",
-      "inventory_empty": "لا توجد عناصر مسجلة هنا لهذه الجولة."
+      "inventory_empty": "لا توجد عناصر مسجلة هنا لهذه الجولة.",
+      "terminal_run": "العب في الطرفية"
     }
   },
   "hi": {
@@ -1275,13 +1305,15 @@
       "ascension": "आरोहण",
       "model": "मॉडल",
       "key": "API कुंजी",
-      "test": "20 चरणों का परीक्षण",
       "load": "सेव लोड करें",
       "start": "रन शुरू करें",
       "home": "खेलें",
       "running": "रन टर्मिनल में खुला है।",
       "installing": "इंस्टॉल होने पर विंडो बंद करें और रन शुरू करें।",
       "finished": "टर्मिनल बंद हो गया। अगला रन शुरू कर सकते हैं।",
+      "console_failed": "टर्मिनल का काम विफल रहा। विवरण टर्मिनल में देखें।",
+      "steam_mod_full": "Steam पर पूरा रन",
+      "steam_mod_full_help": "Steam में STS2 Live Bridge चालू करके मानक एकल-खिलाड़ी रन खोलें। {provider} मौजूदा स्क्रीन से खेल संभालेगा और रन खत्म होने या कार्रवाई की सीमा तक जारी रखेगा। रोकने के लिए कंसोल में Ctrl+C दबाएँ। API इस्तेमाल पर शुल्क लग सकता है।",
       "missing_key": "API सेटिंग में {provider} की कुंजी सहेजें।",
       "missing_sdk": "इस Python में {package} नहीं है। इंस्टॉलर खोलें?",
       "missing_dotnet": "dotnet नहीं मिला। .NET 9 SDK इंस्टॉल करें।",
@@ -1388,7 +1420,8 @@
       "live_hp": "वर्तमान HP",
       "inventory_deck": "डेक",
       "inventory_relics": "अवशेष",
-      "inventory_empty": "इस खेल में यहाँ कोई वस्तु दर्ज नहीं है।"
+      "inventory_empty": "इस खेल में यहाँ कोई वस्तु दर्ज नहीं है।",
+      "terminal_run": "टर्मिनल में खेलें"
     }
   },
   "id": {
@@ -1401,13 +1434,15 @@
       "ascension": "Ascension",
       "model": "Model",
       "key": "Kunci API",
-      "test": "Uji 20 langkah",
       "load": "Muat simpanan",
       "start": "Mulai permainan",
       "home": "Main",
       "running": "Permainan terbuka di terminal.",
       "installing": "Setelah selesai, tutup jendela pemasang dan mulai permainan.",
       "finished": "Terminal ditutup. Permainan berikutnya bisa dimulai.",
+      "console_failed": "Tugas gagal. Lihat detailnya di terminal.",
+      "steam_mod_full": "Satu permainan penuh di Steam",
+      "steam_mod_full_help": "Buka permainan standar pemain tunggal di Steam dengan STS2 Live Bridge aktif. {provider} melanjutkan dari layar saat ini hingga permainan berakhir atau batas tindakan tercapai. Tekan Ctrl+C di konsol untuk berhenti. Penggunaan API mungkin dikenai biaya.",
       "missing_key": "Simpan kunci {provider} di pengaturan API.",
       "missing_sdk": "Instalasi Python ini tidak memiliki {package}. Buka pemasang?",
       "missing_dotnet": "dotnet tidak ditemukan. Pasang .NET 9 SDK.",
@@ -1514,7 +1549,8 @@
       "live_hp": "HP saat ini",
       "inventory_deck": "Dek",
       "inventory_relics": "Relik",
-      "inventory_empty": "Tidak ada item yang tercatat untuk permainan ini."
+      "inventory_empty": "Tidak ada item yang tercatat untuk permainan ini.",
+      "terminal_run": "Main di terminal"
     }
   },
   "tr": {
@@ -1527,13 +1563,15 @@
       "ascension": "Yükseliş",
       "model": "Model",
       "key": "API anahtarı",
-      "test": "20 adım dene",
       "load": "Kaydı yükle",
       "start": "Oyunu başlat",
       "home": "Oyna",
       "running": "Oyun terminalde açık.",
       "installing": "Kurulum bitince pencereyi kapatıp oyunu başlatın.",
       "finished": "Terminal kapandı. Yeni bir oyun başlatabilirsiniz.",
+      "console_failed": "İşlem başarısız oldu. Ayrıntılar için terminale bakın.",
+      "steam_mod_full": "Steam tam oyun",
+      "steam_mod_full_help": "Steam’de STS2 Live Bridge etkin durumdayken standart bir tek oyunculu oyun aç. {provider} mevcut ekrandan devralır ve oyun bitene veya işlem sınırına ulaşana kadar oynar. Durdurmak için konsolda Ctrl+C tuşlarına bas. API kullanımı ücretli olabilir.",
       "missing_key": "{provider} anahtarını API ayarlarında kaydedin.",
       "missing_sdk": "Bu Python kurulumunda {package} yok. Yükleyici açılsın mı?",
       "missing_dotnet": "dotnet bulunamadı. .NET 9 SDK’yı yükleyin.",
@@ -1640,7 +1678,8 @@
       "live_hp": "Anlık can",
       "inventory_deck": "Deste",
       "inventory_relics": "Yadigârlar",
-      "inventory_empty": "Bu koşu için burada kayıtlı öğe yok."
+      "inventory_empty": "Bu koşu için burada kayıtlı öğe yok.",
+      "terminal_run": "Terminalde oyna"
     }
   },
   "vi": {
@@ -1653,13 +1692,15 @@
       "ascension": "Bậc thăng",
       "model": "Mô hình",
       "key": "Khóa API",
-      "test": "Thử 20 bước",
       "load": "Tải bản lưu",
       "start": "Bắt đầu lượt chơi",
       "home": "Chơi",
       "running": "Lượt chơi đang mở trong cửa sổ dòng lệnh.",
       "installing": "Khi cài xong, đóng trình cài đặt rồi bắt đầu lượt chơi.",
       "finished": "Đã đóng cửa sổ dòng lệnh. Có thể bắt đầu lượt tiếp theo.",
+      "console_failed": "Tác vụ thất bại. Xem chi tiết trong cửa sổ dòng lệnh.",
+      "steam_mod_full": "Chơi trọn lượt trên Steam",
+      "steam_mod_full_help": "Mở một lượt chơi đơn tiêu chuẩn trong Steam khi STS2 Live Bridge đã bật. {provider} tiếp tục từ màn hình hiện tại đến khi lượt chơi kết thúc hoặc chạm giới hạn thao tác. Nhấn Ctrl+C trong cửa sổ dòng lệnh để dừng. Việc sử dụng API có thể phát sinh phí.",
       "missing_key": "Hãy lưu khóa của {provider} trong cài đặt API.",
       "missing_sdk": "Python này chưa có {package}. Mở trình cài đặt?",
       "missing_dotnet": "Không tìm thấy dotnet. Hãy cài .NET 9 SDK.",
@@ -1766,7 +1807,8 @@
       "live_hp": "HP hiện tại",
       "inventory_deck": "Bộ bài",
       "inventory_relics": "Di vật",
-      "inventory_empty": "Lượt chơi này không có dữ liệu ở đây."
+      "inventory_empty": "Lượt chơi này không có dữ liệu ở đây.",
+      "terminal_run": "Chơi trong dòng lệnh"
     }
   },
   "th": {
@@ -1779,13 +1821,15 @@
       "ascension": "ระดับไต่ขั้น",
       "model": "โมเดล",
       "key": "คีย์ API",
-      "test": "ทดสอบ 20 ขั้น",
       "load": "โหลดเซฟ",
       "start": "เริ่มรอบ",
       "home": "เล่น",
       "running": "รอบกำลังทำงานในเทอร์มินัล",
       "installing": "ปิดหน้าต่างติดตั้งเมื่อเสร็จแล้วจึงเริ่มรอบ",
       "finished": "ปิดเทอร์มินัลแล้ว เริ่มรอบถัดไปได้",
+      "console_failed": "งานล้มเหลว ดูรายละเอียดในเทอร์มินัล",
+      "steam_mod_full": "เล่นเต็มรอบบน Steam",
+      "steam_mod_full_help": "เปิดเกมผู้เล่นคนเดียวโหมดมาตรฐานบน Steam โดยเปิดใช้งาน STS2 Live Bridge แล้ว {provider} จะเล่นต่อจากหน้าจอปัจจุบันจนจบรอบหรือถึงขีดจำกัดการดำเนินการ กด Ctrl+C ในคอนโซลเพื่อหยุด การใช้ API อาจมีค่าใช้จ่าย",
       "missing_key": "บันทึกคีย์ของ {provider} ที่การตั้งค่า API",
       "missing_sdk": "Python นี้ไม่มี {package} ต้องการเปิดตัวติดตั้งไหม?",
       "missing_dotnet": "ไม่พบ dotnet โปรดติดตั้ง .NET 9 SDK",
@@ -1892,7 +1936,8 @@
       "live_hp": "พลังชีวิตปัจจุบัน",
       "inventory_deck": "สำรับการ์ด",
       "inventory_relics": "วัตถุโบราณ",
-      "inventory_empty": "ไม่มีรายการที่บันทึกไว้สำหรับรอบนี้"
+      "inventory_empty": "ไม่มีรายการที่บันทึกไว้สำหรับรอบนี้",
+      "terminal_run": "เล่นในเทอร์มินัล"
     }
   }
 }

@@ -2,7 +2,7 @@
 
 [English](README.md) · **简体中文**
 
-这是为 [sts2-cli](https://github.com/wuhao21/sts2-cli) 增加的 Windows 桌面启动器。可以手动控制对局，也可以让 DeepSeek 或 Claude 游玩并回看每个房间的过程。对局通过本机 Steam 游戏引擎运行，操作和状态显示在游戏终端里。
+这是为 [sts2-cli](https://github.com/wuhao21/sts2-cli) 增加的 Windows 桌面启动器。可以手动控制对局，也可以让 DeepSeek 或 Claude 游玩并回看每个房间的过程。可以在终端开局，也可以让 AI 接手 Steam 游戏里已经打开的单人对局。
 
 ## 下载与启动
 
@@ -10,9 +10,13 @@
 
 1. 通过 Steam 安装《杀戮尖塔 2》，然后下载上面的 ZIP。
 2. 将 ZIP 完整解压到一个可写目录，再双击里面的 `Start STS2.cmd`。
-3. 选择 **手动游玩** 或 **AI 游玩**，点击 **开始对局**。首次开局会自动查找 Steam 游戏。如果找不到，选择游戏安装目录即可。
+3. 手动游玩点 **开始对局**。AI 游玩先选人物，再点 **Steam 整局托管** 或 **终端开局**。首次通过终端开局会自动查找 Steam 游戏。
 
 ZIP 已包含 Python 和 .NET 运行环境。安装 Steam 游戏后，手动游玩、读档、地图和分析都可离线使用。AI 游玩、手动刷新模型和安装缺失的 API 客户端时需要联网。
+
+### Steam 整局托管
+
+先在 Steam 里启用 **STS2 Live Bridge** 并进入标准单人对局，再点 **AI 游玩 → Steam 整局托管**。所选人物的 DeepSeek 或 Claude 模型会从当前进度接手，房间、决策和结果会同步到对局记录。[安装及使用说明](docs/steam-mod.md#简体中文)
 
 ![中文启动器，显示 AI 人物、发言语言和模型](docs/screenshots/launcher-zh.png)
 
@@ -37,6 +41,7 @@ ZIP 已包含 Python 和 .NET 运行环境。安装 Steam 游戏后，手动游�
 
 ## 文档与许可
 
+- [Steam 桥接安装与整局托管](docs/steam-mod.md#简体中文)
 - [桌面启动器使用指南](docs/desktop-launcher.md#中文)
 - [命令行玩法、源码构建和 JSON 协议](docs/cli.md#中文)
 - [版本更新与下载](https://github.com/fallingstars123/sts2-cli/releases)

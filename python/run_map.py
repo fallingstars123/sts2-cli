@@ -6,6 +6,7 @@ from math import hypot
 from tkinter import Canvas, ttk
 from typing import NamedTuple
 
+from scroll_gestures import ScrollGestures
 
 KINDS = {"monster": "battle", "elite": "elite", "boss": "boss", "restsite": "rest",
          "shop": "shop", "treasure": "chest", "event": "event", "unknown": "event", "ancient": "start"}
@@ -148,6 +149,8 @@ class RunMap:
         self.focus_route = True
         self.chapters = {}
         self.chapter_ids = []
+        self.hit_nodes = {}
+        self.pressed_node = None
         filters = ttk.Frame(parent, padding=(0, 0, 0, 8))
         filters.pack(fill="x")
         self.acts = ttk.Combobox(filters, state="readonly", width=29, font=launcher.fonts["body"])
@@ -167,7 +170,9 @@ class RunMap:
         scroll.pack(side="right", fill="y")
         self.canvas.configure(yscrollcommand=scroll.set)
         self.canvas.bind("<Configure>", self.draw)
-        self.canvas.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(-int(e.delta / 120), "units"))
+        self.canvas.bind("<ButtonPress-1>", self.press_node)
+        self.canvas.bind("<ButtonRelease-1>", self.tap_node)
+        self.scrolling = ScrollGestures(self.canvas)
         self.legend = Canvas(view, width=1, height=53, background=MAP_BACKGROUND, highlightthickness=0)
         self.legend.grid(row=1, column=0, sticky="ew", pady=(3, 0))
         self.legend_at_side = False
@@ -261,6 +266,23 @@ class RunMap:
         self.update_labels()
         self.draw()
 
+    def room_at(self, event):
+        view = self.canvas
+        x, y = view.canvasx(event.x), view.canvasy(event.y)
+        for item in reversed(view.find_overlapping(x - 2, y - 2, x + 2, y + 2)):
+            for tag in view.gettags(item):
+                if tag in self.hit_nodes:
+                    return self.hit_nodes[tag]
+        return None
+
+    def press_node(self, event):
+        self.pressed_node = self.room_at(event)
+
+    def tap_node(self, event):
+        pressed, self.pressed_node = self.pressed_node, None
+        if pressed is not None and pressed == self.room_at(event):
+            self.select_node(pressed)
+
     def show_room(self):
         node = self.chapters.get(self.act, (None, None, {}, []))[2].get(self.selected)
         if node and node[3]:
@@ -268,6 +290,7 @@ class RunMap:
 
     def draw(self, _event=None):
         view = self.canvas
+        self.hit_nodes.clear()
         view.delete("all")
         width, height = view.winfo_width(), view.winfo_height()
         if width < 100 or height < 50:
@@ -305,6 +328,7 @@ class RunMap:
         for point, (room, _, reached, _) in nodes.items():
             x, y = positions[point]
             tag = f"room_{point[0]}_{point[1]}"
+            self.hit_nodes[tag] = point
             edge = NODE_SIZES.get(room, 20)
             radius = edge / 2 + 5
             selected = self.selected == point
@@ -318,7 +342,6 @@ class RunMap:
                 view.create_oval(x-border, y-border, x+border, y+border, width=2,
                                  outline="#89C7EE" if current == point else "#F8D393", tags=tag)
             self.icon(room, x, y, tag, edge=edge, detail=chapter.special_art.get(point))
-            view.tag_bind(tag, "<Button-1>", lambda _event, point=point: self.select_node(point))
             view.tag_bind(tag, "<Enter>", lambda _event: view.configure(cursor="hand2"))
             view.tag_bind(tag, "<Leave>", lambda _event: view.configure(cursor=""))
         if self.focus_route:

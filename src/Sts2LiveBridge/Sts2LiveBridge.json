@@ -1,0 +1,12 @@
+{
+  "id": "Sts2LiveBridge",
+  "name": "STS2 Live Bridge",
+  "author": "sts2-cli contributors",
+  "description": "Local single-player state and action bridge for the STS2 launcher and MCP clients.",
+  "version": "0.1.7",
+  "min_game_version": "0.111.1",
+  "has_pck": false,
+  "has_dll": true,
+  "affects_gameplay": true,
+  "dependencies": []
+}

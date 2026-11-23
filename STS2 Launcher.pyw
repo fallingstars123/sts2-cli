@@ -25,7 +25,12 @@ from uuid import uuid4
 LAUNCHER = Path(__file__).resolve()
 sys.path.insert(0, str(LAUNCHER.parent / "python"))
 from character_catalog import CHARACTERS, character_id
+from card_hover import CardHover
 from game_art import GameArt
+from inventory_book import InventoryBook, book_title, detail_labels, preview_description, preview_image
+from inventory_catalog import InventoryCatalog, display_description
+from scroll_gestures import ScrollGestures
+from wiki_card_icons import COLORS as CARD_POOL_COLORS
 
 HISTORY_DIR = LAUNCHER.parent / "STS2 Runs"
 PREFERENCES_PATH = LAUNCHER.parent / "STS2 Preferences.json"
@@ -45,12 +50,15 @@ TEXT = {
         "ascension": "进阶",
         "model": "模型",
         "key": "API 密钥",
-        "test": "试跑 20 步",
         "load": "读取存档",
         "start": "启动对局",
         "running": "对局正在终端中运行。",
         "installing": "安装完成后，关闭安装窗口即可启动对局。",
         "finished": "终端已关闭，可以启动下一局。",
+        "console_failed": "终端执行失败，详情见终端提示。",
+        "terminal_run": "终端开局",
+        "steam_mod_full": "Steam 整局托管",
+        "steam_mod_full_help": "先在 Steam 启用 STS2 Live Bridge 并打开标准单人对局。{provider} 将从当前进度接手。控制台按 Ctrl+C 停止。",
         "missing_key": "请在 API 设置里保存 {provider} 的密钥。",
         "missing_sdk": "当前 Python 缺少 {package}。要打开安装窗口吗？",
         "missing_dotnet": "找不到 dotnet，请先安装 .NET 9 SDK。",
@@ -161,12 +169,15 @@ TEXT = {
         "ascension": "Ascension",
         "model": "Model",
         "key": "API key",
-        "test": "Test 20 steps",
         "load": "Load save",
         "start": "Start run",
         "running": "The run is open in a terminal window.",
         "installing": "Close the installer window when it finishes, then start a run.",
         "finished": "Terminal closed. Ready for the next run.",
+        "console_failed": "The terminal task failed. See the console for details.",
+        "terminal_run": "Play in terminal",
+        "steam_mod_full": "Steam Full Run",
+        "steam_mod_full_help": "Open a standard Steam single-player run with STS2 Live Bridge enabled. {provider} takes over from the current screen. Press Ctrl+C in the console to stop.",
         "missing_key": "Save the API key for {provider} in API settings.",
         "missing_sdk": "This Python installation is missing {package}. Open the installer?",
         "missing_dotnet": "dotnet was not found. Install the .NET 9 SDK.",
@@ -622,42 +633,186 @@ def configure_theme(root):
     style.configure("PlayerName.TLabel", background=PANEL, foreground=TEXT_COLOR, font=fonts["title"])
     style.configure("Caption.TLabel", background=PANEL, foreground=MUTED, font=fonts["small"])
     style.configure("Section.TLabel", background=PANEL, foreground=TEXT_COLOR, font=fonts["button"])
+    style.configure("Inventory.TButton", font=fonts["small"], padding=(6, 3), focusthickness=0)
+    style.map("Inventory.TButton", bordercolor=[("focus", HOVER)])
     style.configure("Inventory.Treeview", background=PANEL, fieldbackground=PANEL, foreground=TEXT_COLOR,
-                    borderwidth=0, rowheight=27, font=fonts["small"])
+                    borderwidth=0, bordercolor=PANEL, lightcolor=PANEL, darkcolor=PANEL,
+                    relief="flat", rowheight=22, font=fonts["small"])
     return fonts
 
 
+class DeckGrid(tk.Canvas):
+    ROW_HEIGHT = 26
+    MAX_VISIBLE_ROWS = 4
+    MIN_CELL_WIDTH = 146
+
+    def __init__(self, parent, face):
+        super().__init__(parent, background=PANEL, width=1, height=self.ROW_HEIGHT, borderwidth=0,
+                         highlightthickness=0, yscrollincrement=1)
+        self.face = face
+        self.columns = 1
+        self.layout_width = 1
+        self.cards = ()
+        self.indexes = {}
+        self.empty_text = ""
+        self.bind("<Configure>", self.resize)
+
+    def replace_cards(self, cards, empty_text):
+        anchor = self.scroll_anchor()
+        self.cards = tuple(cards)
+        self.indexes = {key: index for index, (key, _, _, _) in enumerate(self.cards)}
+        self.empty_text = empty_text
+        self.draw(self.winfo_width(), anchor)
+
+    def resize(self, event):
+        if event.width != self.layout_width:
+            self.draw(event.width, self.scroll_anchor())
+
+    def scroll_anchor(self):
+        top = max(0, round(self.canvasy(0)))
+        row, offset = divmod(top, self.ROW_HEIGHT)
+        index = row * self.columns
+        key = self.cards[index][0] if index < len(self.cards) else None
+        return key, offset, top
+
+    def draw(self, width, anchor):
+        self.layout_width = max(1, width)
+        self.columns = max(1, min(4, width // self.MIN_CELL_WIDTH))
+        row_count = max(1, (len(self.cards) + self.columns - 1) // self.columns)
+        height = row_count * self.ROW_HEIGHT
+        self.configure(height=min(row_count, self.MAX_VISIBLE_ROWS) * self.ROW_HEIGHT,
+                       scrollregion=(0, 0, self.layout_width, height))
+        self.delete("all")
+        if width > 30:
+            if self.cards:
+                for index, (_, label, icon, copies) in enumerate(self.cards):
+                    self.draw_cell(index, label, icon, copies)
+            else:
+                self.create_text(7, self.ROW_HEIGHT // 2, text=self.empty_text, anchor="w",
+                                 font=self.face, fill=MUTED)
+        key, offset, top = anchor
+        if key in self.indexes:
+            top = self.indexes[key] // self.columns * self.ROW_HEIGHT + offset
+        self.yview_moveto(top / height)
+
+    def coordinates(self, index):
+        row, column = divmod(index, self.columns)
+        return (column * self.layout_width // self.columns + 1, row * self.ROW_HEIGHT + 1,
+                (column + 1) * self.layout_width // self.columns - 3, (row + 1) * self.ROW_HEIGHT - 2)
+
+    def draw_cell(self, index, label, icon, copies):
+        left, top, right, bottom = self.coordinates(index)
+        mid_y = (top + bottom) // 2
+        self.create_rectangle(left, top, right, bottom, fill=FIELD, outline="")
+        if icon:
+            self.create_image(left + 14, mid_y, image=icon)
+        else:
+            self.create_text(left + 14, mid_y, text="◇", font=self.face, fill=MUTED)
+        count = f"×{copies}"
+        count_right = right - 7
+        self.create_text(count_right, mid_y, text=count, anchor="e", font=self.face, fill=MUTED)
+        label_left = left + 27
+        label_width = count_right - self.face.measure(count) - label_left - 7
+        fitted = self.fit_label(label, label_width)
+        if fitted:
+            self.create_text(label_left, mid_y, text=fitted, anchor="w", font=self.face, fill=TEXT_COLOR)
+
+    def fit_label(self, label, width):
+        if self.face.measure(label) <= width:
+            return label
+        suffix = "…+" if label.endswith("+") else "…"
+        if self.face.measure(suffix) > width:
+            return ""
+        low, high = 0, len(label.rstrip("+"))
+        while low < high:
+            middle = (low + high + 1) // 2
+            if self.face.measure(label[:middle] + suffix) <= width:
+                low = middle
+            else:
+                high = middle - 1
+        return label[:low] + suffix
+
+    def hit_test(self, x, y):
+        if not (0 <= x < self.layout_width and 0 <= y < self.winfo_height()):
+            return None
+        column = x * self.columns // self.layout_width
+        index = int(self.canvasy(y) // self.ROW_HEIGHT) * self.columns + column
+        if 0 <= index < len(self.cards):
+            key = self.cards[index][0]
+            if bounds := self.cell_bounds(key):
+                left, top, width, height = bounds
+                if left <= x < left + width and top <= y < top + height:
+                    return key
+        return None
+
+    def cell_bounds(self, key):
+        index = self.indexes.get(key)
+        if index is None or self.layout_width <= 30:
+            return None
+        left, top, right, bottom = self.coordinates(index)
+        scroll = round(self.canvasy(0))
+        top, bottom = max(0, top - scroll), min(self.winfo_height(), bottom - scroll)
+        if bottom > top:
+            return left, top, right - left, bottom - top
+        return None
+
+
 class RunInventory:
+    KINDS = {"relics": "relic", "deck": "card"}
+
     def __init__(self, parent, launcher):
         self.launcher = launcher
         self.sections = {}
-        self.expanded = set()
+        self.hovers = {}
+        self.row_entries = {}
+        self.expanded = set(self.KINDS)
         self.player = {}
         area = ttk.Frame(parent)
         area.pack(fill="x", pady=(7, 0))
-        area.grid_columnconfigure((0, 1), weight=1, uniform="inventory")
-        for column, kind in enumerate(("deck", "relics")):
+        area.grid_columnconfigure(0, weight=1, uniform="inventory")
+        area.grid_columnconfigure(1, weight=3, uniform="inventory")
+        for column, kind in enumerate(self.KINDS):
             panel = ttk.Frame(area, style="Panel.TFrame")
-            panel.grid(row=0, column=column, sticky="new", padx=(0, 6 if column == 0 else 0))
-            button = ttk.Button(panel, style="Language.TButton", compound="left",
+            panel.grid(row=0, column=column, sticky="new", padx=(0, 5 if column == 0 else 0))
+            button = ttk.Button(panel, style="Inventory.TButton", compound="left",
                                 command=lambda kind=kind: self.toggle(kind))
             button.pack(fill="x", anchor="n")
-            body = ttk.Frame(panel, style="Panel.TFrame", padding=(4, 3))
-            table = ttk.Treeview(body, show="tree", columns=("count",), height=4, style="Inventory.Treeview",
-                                 selectmode="none")
-            table.column("#0", width=145, stretch=True)
-            table.column("count", width=44, minwidth=40, stretch=False, anchor="e")
+            body = ttk.Frame(panel, style="Panel.TFrame", padding=(2, 2))
+            body.pack(fill="x", expand=True)
+            if kind == "deck":
+                table = DeckGrid(body, launcher.fonts["small"])
+                hover_geometry = {"hit_test": table.hit_test, "bounds": table.cell_bounds, "near_pointer": True}
+            else:
+                table = ttk.Treeview(body, show="tree", columns=("count",), height=4, style="Inventory.Treeview",
+                                     selectmode="none")
+                table.column("#0", width=110, minwidth=56, stretch=True)
+                table.column("count", width=34, minwidth=29, stretch=False, anchor="e")
+                hover_geometry = {"protected": lambda: tuple(section[1].master for section in self.sections.values())}
             table.pack(side="left", fill="both", expand=True)
             bar = ttk.Scrollbar(body, orient="vertical", command=table.yview, style="History.Vertical.TScrollbar")
             bar.pack(side="right", fill="y")
-            table.configure(yscrollcommand=bar.set)
             self.sections[kind] = (button, body, table)
+            self.row_entries[kind] = {}
+            self.hovers[kind] = CardHover(table, lambda row, kind=kind: self.hover_details(kind, row),
+                                        background=PANEL, foreground=TEXT_COLOR, muted=MUTED, border=BORDER,
+                                        **hover_geometry)
+            if kind == "deck":
+                table.configure(yscrollcommand=lambda first, last, bar=bar: self.sync_deck_scroll(bar, first, last))
+            else:
+                table.configure(yscrollcommand=bar.set)
         self.signatures = {}
         self.counts = {}
+
+    def sync_deck_scroll(self, bar, first, last):
+        bar.set(first, last)
+        hover = self.hovers["deck"]
+        if hover.anchor is not None and hover.viewport() != hover.anchor:
+            hover.hide()
 
     def toggle(self, kind):
         body = self.sections[kind][1]
         if kind in self.expanded:
+            self.hovers[kind].hide()
             self.expanded.remove(kind)
             body.pack_forget()
         else:
@@ -669,8 +824,8 @@ class RunInventory:
         count = self.counts.get(kind)
         label = self.launcher.text("inventory_" + kind)
         prefix = "▾" if kind in self.expanded else "▸"
-        image = self.launcher.art.resource_icon("deck", "", (15, 15)) if kind == "deck" else None
-        self.sections[kind][0].configure(text=f"{prefix}  {label}" + (f"  ({count})" if count is not None else ""),
+        image = self.launcher.art.resource_icon(kind, "", (13, 13)) if kind == "deck" else None
+        self.sections[kind][0].configure(text=f"{prefix} {label}" + (f" ({count})" if count is not None else ""),
                                          image=image or "")
 
     def update(self, player):
@@ -678,46 +833,196 @@ class RunInventory:
         art = self.launcher.art
         language = engine_language(self.launcher.language)
         for kind, (_, _, table) in self.sections.items():
-            items = player.get(kind)
-            self.counts[kind] = len(items) if isinstance(items, list) else player.get("deck_size") if kind == "deck" else None
+            inventory = player.get(kind)
+            known = isinstance(inventory, list)
+            items = [item for item in inventory if isinstance(item, dict)] if known else []
+            self.counts[kind] = len(items) if known else player.get("deck_size") if kind == "deck" else None
             self.set_button(kind)
             if kind not in self.expanded:
                 continue
             rows = Counter()
-            for item in items if isinstance(items, list) else ():
-                if not isinstance(item, dict):
-                    continue
+            entries = {}
+            for item in items:
                 name = item.get("name")
                 english = name.get("en", "") if isinstance(name, dict) else name
                 label = name.get(language) or english if isinstance(name, dict) else name
                 identifier = item.get("id")
                 if not isinstance(identifier, str):
                     identifier = re.sub(r"[^a-z0-9]+", "_", english.casefold()).strip("_") if isinstance(english, str) else ""
+                entry = self.launcher.inventory_catalog.lookup(self.KINDS[kind], identifier,
+                                                               self.launcher.language, observed=item)
+                if entry:
+                    label = entry.name
+                    identifier = entry.id
                 if not isinstance(label, str) or not label:
                     label = identifier.rsplit(".", 1)[-1].replace("_", " ").title()
                 if not label:
                     continue
-                if item.get("upgraded") and not label.endswith("+"):
+                upgraded = entry.upgraded if entry else item.get("upgraded")
+                if upgraded and not label.endswith("+"):
                     label += "+"
                 variant = None
                 if kind == "deck":
-                    properties = [item.get(key) for key in ("pool", "rarity", "type")]
+                    properties = [getattr(entry, key, None) or item.get(key) for key in ("pool", "rarity", "type")]
                     variant = art.card_variant(identifier, *(value if isinstance(value, str) else "" for value in properties))
-                rows[identifier, label, variant] += 1
-            signature = (self.launcher.language, tuple(rows.items()))
+                key = identifier, label, variant
+                if kind == "deck" and entry:
+                    key += (entry.upgraded, entry.energy, entry.description, entry.observed_description)
+                rows[key] += 1
+                if entry:
+                    entries[key] = entry
+            signature = (self.launcher.language, known, tuple(rows.items()))
             if self.signatures.get(kind) == signature:
+                updated = entries if kind == "deck" else {
+                    row: entries[key] for row, key in zip(table.get_children(), rows) if key in entries}
+                if updated != self.row_entries[kind]:
+                    self.hovers[kind].hide()
+                    self.row_entries[kind] = updated
                 continue
             self.signatures[kind] = signature
+            self.hovers[kind].hide()
+            empty_text = "—" if known else self.launcher.text("inventory_empty")
+            if kind == "deck":
+                self.row_entries[kind] = entries
+                cards = []
+                for key, copies in rows.items():
+                    identifier, label, variant = key[:3]
+                    cards.append((key, label, art.card_icon(identifier, variant, (18, 19)), copies))
+                table.replace_cards(cards, empty_text)
+                continue
+
             scroll = table.yview()[0]
+            self.row_entries[kind] = {}
             table.delete(*table.get_children())
-            for (identifier, label, variant), copies in rows.items():
-                icon = art.card_icon(identifier, variant, (24, 25)) if variant else art.relic_icon(identifier, (22, 22))
-                table.insert("", "end", text=label if icon else "◇  " + label,
-                             image=icon or "", values=(f"×{copies}",))
+            for key, copies in rows.items():
+                identifier, label, _ = key
+                icon = art.relic_icon(identifier, (19, 19))
+                row = table.insert("", "end", text=label if icon else "◇  " + label,
+                                   image=icon or "", values=(f"×{copies}",))
+                if key in entries:
+                    self.row_entries[kind][row] = entries[key]
             if not rows:
-                table.insert("", "end", text=self.launcher.text("inventory_empty"))
+                table.insert("", "end", text=empty_text)
             table.configure(height=min(5, max(1, len(rows))))
             table.yview_moveto(scroll)
+
+    def hover_details(self, kind, row):
+        entry = self.row_entries[kind].get(row)
+        if entry is None:
+            return None
+        category, rarity = detail_labels(entry, self.launcher.language)
+        name = entry.name + ("+" if entry.upgraded and not entry.name.endswith("+") else "")
+        art = self.launcher.art
+        language = self.launcher.language
+        detail = {"name": name, "description": preview_description(entry, language, prefer_complete=True),
+                  "cost": entry.energy, "type": category, "rarity": rarity, "language": language}
+        if kind == "deck":
+            metadata = art.rendered_card_metadata(entry.id, language, entry.upgraded)
+            expected = metadata.get("description")
+            clean_expected = " ".join(display_description(expected, language).split())
+            same_effect = bool(clean_expected) and clean_expected == " ".join(entry.description.split())
+            same_cost = entry.energy is None or entry.energy == metadata.get("cost")
+            reference = art.rendered_card(entry.id, language, entry.upgraded, (226, 295)) if same_effect and same_cost else None
+            if reference:
+                return {**detail, "card": True, "render": reference}
+            variant = art.card_variant(entry.id, entry.pool or "", entry.rarity or "", entry.type or "")
+            frame = art.card_frame(entry.id, entry.pool or "", variant, (228, 322))
+            detail.update(card=True, accent=CARD_POOL_COLORS[variant[0]], frame=frame)
+        detail["image"] = preview_image(art, entry, card_size=(188, 137), relic_size=(55, 55))
+        return detail
+
+
+class PotionStrip:
+    SLOT_SIZE = 27
+    MAX_SLOTS = 24
+
+    def __init__(self, parent, launcher):
+        self.launcher = launcher
+        self.signature = None
+        self.entries = {}
+        self.slots = {}
+        row = ttk.Frame(parent, style="Panel.TFrame")
+        row.pack(fill="x", pady=(3, 0))
+        self.label = ttk.Label(row, style="Caption.TLabel", compound="left")
+        self.label.pack(side="left", padx=(0, 9))
+        self.view = tk.Canvas(row, bg=PANEL, width=1, height=self.SLOT_SIZE, highlightthickness=0)
+        self.view.pack(side="left", fill="x", expand=True)
+        self.hover = CardHover(self.view, self.details, background=PANEL, foreground=TEXT_COLOR,
+                               muted=MUTED, border=BORDER, hit_test=self.hit_test, bounds=self.slots.get)
+
+    def update(self, player, character, ascension=None):
+        inventory = player.get("potions")
+        capacity = player.get("potion_capacity")
+        if type(capacity) is not int or not 0 <= capacity <= self.MAX_SLOTS:
+            # Older archives omitted the total. Ascension 4 reduces the starting three slots to two.
+            capacity = 0
+            if player or character:
+                capacity = 2 if type(ascension) is int and ascension >= 4 else 3
+                added = player.get("potion_slots_added")
+                if type(added) is int and added > 0:
+                    capacity = min(self.MAX_SLOTS, capacity + added)
+        language = self.launcher.language
+        signature = (language, character, inventory, capacity)
+        if signature == self.signature:
+            return
+        self.signature = signature
+        self.hover.hide()
+        self.view.delete("all")
+        self.entries.clear()
+        self.slots.clear()
+        art = self.launcher.art
+        label_icon = art.resource_icon("potions", character, (16, 16))
+        self.label.configure(text=("  " if label_icon else "") + self.launcher.text("resource_potions"),
+                             image=label_icon or "")
+        recorded = isinstance(inventory, list)
+        occupied = {}
+        unindexed = []
+        for item in inventory if recorded else ():
+            if not isinstance(item, dict):
+                continue
+            index = item.get("slot_index", item.get("index"))
+            if type(index) is int and 0 <= index < self.MAX_SLOTS:
+                occupied[index] = item
+            else:
+                unindexed.append(item)
+        free = (index for index in range(self.MAX_SLOTS) if index not in occupied)
+        occupied.update(zip(free, unindexed))
+        size = self.SLOT_SIZE
+        count = max(capacity, max(occupied, default=-1) + 1)
+        if not count:
+            self.view.create_text(3, size // 2, anchor="w", text="—", fill=MUTED,
+                                  font=self.launcher.fonts["small"], tags="unknown")
+        for index in range(count):
+            center = index * size + size // 2
+            if index not in occupied:
+                self.view.create_oval(center - 5, size // 2 - 5, center + 5, size // 2 + 5,
+                                      outline=MUTED, width=1, dash=() if recorded else (2, 2),
+                                      tags="empty" if recorded else "unrecorded")
+                continue
+            item = occupied[index]
+            entry = self.launcher.inventory_catalog.lookup("potion", item.get("id"), language, observed=item)
+            identifier = entry.id if entry else item.get("id")
+            image = art.potion_icon(identifier, (23, 23)) or label_icon
+            if image:
+                self.view.create_image(center, size // 2, image=image, tags="potion")
+            else:
+                self.view.create_text(center, size // 2, text="◆", fill=ACCENT, tags="potion")
+            if entry:
+                self.entries[index] = entry
+                self.slots[index] = (index * size, 0, size, size)
+
+    def hit_test(self, x, y):
+        index = x // self.SLOT_SIZE
+        return index if 0 <= y < self.SLOT_SIZE and index in self.slots else None
+
+    def details(self, index):
+        entry = self.entries.get(index)
+        if not entry:
+            return None
+        language = self.launcher.language
+        return {"name": entry.name, "description": preview_description(entry, language, prefer_complete=True),
+                "language": language,
+                "image": self.launcher.art.potion_icon(entry.id, (49, 49))}
 
 
 class RunAnalysis:
@@ -730,8 +1035,19 @@ class RunAnalysis:
         self.provider_rates = []
         self.timeline = []
         self.metrics = []
-        area = ttk.Frame(parent, padding=(6, 7, 6, 0))
-        area.pack(fill="both", expand=True)
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+        self.viewport = tk.Canvas(parent, background=BACKGROUND, width=1, height=1,
+                                  highlightthickness=0, yscrollincrement=1)
+        self.viewport.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=self.viewport.yview,
+                                  style="History.Vertical.TScrollbar")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.viewport.configure(yscrollcommand=scrollbar.set)
+        area = ttk.Frame(self.viewport, padding=(6, 7, 6, 7))
+        frame_id = self.viewport.create_window(0, 0, window=area, anchor="nw")
+        self.viewport.bind("<Configure>", lambda event: self.viewport.itemconfigure(frame_id, width=event.width))
+        area.bind("<Configure>", lambda _event: self.viewport.configure(scrollregion=self.viewport.bbox(frame_id)))
 
         player = ttk.Frame(area, style="Panel.TFrame", padding=(12, 10))
         player.pack(fill="x")
@@ -759,10 +1075,11 @@ class RunAnalysis:
         resources = ttk.Frame(card, style="Panel.TFrame")
         resources.pack(fill="x", pady=(1, 0))
         self.resource_labels = {}
-        for index, key in enumerate(("gold", "block", "potions", "energy")):
+        for index, key in enumerate(("gold", "block", "energy")):
             badge = ttk.Label(resources, style="Caption.TLabel", compound="left")
-            badge.grid(row=index // 2, column=index % 2, sticky="w", padx=(0, 16))
+            badge.grid(row=0, column=index, sticky="w", padx=(0, 16))
             self.resource_labels[key] = badge
+        self.potion_strip = PotionStrip(card, launcher)
         self.inventory = RunInventory(area, launcher)
 
         summary = ttk.Frame(area)
@@ -803,6 +1120,18 @@ class RunAnalysis:
         self.notes.configure(yscrollcommand=scroll.set)
         self.notes.tag_configure("muted", foreground=MUTED, spacing3=6)
         self.notes.tag_configure("plan", foreground=ACCENT)
+        inner_views = {body.master: table for _, body, table in self.inventory.sections.values()}
+        inner_views[notes] = self.notes
+
+        def scroll_view(widget):
+            while widget is not None and widget is not parent:
+                view = inner_views.get(widget)
+                if view is not None and view.winfo_viewable():
+                    return view
+                widget = widget.master
+            return self.viewport
+
+        self.scrolling = ScrollGestures(parent, resolver=scroll_view, descendants=True)
 
     def text(self, key, **values):
         return self.launcher.text(key, **values)
@@ -817,8 +1146,8 @@ class RunAnalysis:
         self.timeline = []
         estimate_wins = estimate_total = 0
         player = {}
+        target = dict(info)
         if folder and self.stats:
-            target = dict(info)
             self.stats.fill_legacy_progress(folder, target)
             provider = target.get("provider")
             cohort = self.stats.similar_runs(groups.get(provider, []) if isinstance(provider, str) else [], target)
@@ -844,7 +1173,8 @@ class RunAnalysis:
             detail.configure(text=hint)
         self.draw_bars()
         self.draw_trend()
-        self.show_player(info, player)
+        self.launcher.inventory_catalog.observe_archive(folder)
+        self.show_player(target, player)
         self.inventory.update(player)
         self.show_notes(folder, info)
 
@@ -855,11 +1185,8 @@ class RunAnalysis:
         self.player_name.configure(text=name)
         health, maximum = player.get("hp"), player.get("max_hp")
         has_health = type(health) is int and type(maximum) is int and maximum > 0
-        started = self.stats.timestamp(info.get("started")) if self.stats else None
-        live = (self.launcher.console_started is not None and started is not None
-                and started >= self.launcher.console_started and not info.get("ended"))
         art = self.launcher.art
-        self.hp_caption.configure(text="  " + self.text("live_hp" if live else "latest_hp"),
+        self.hp_caption.configure(text="  " + self.text("live_hp" if self.is_live(info) else "latest_hp"),
                                   image=art.resource_icon("hp", self.character, (15, 15)) or "")
         self.player_hp.configure(text=f"{health}/{maximum}" if has_health else "—")
         self.hp_ratio = min(1, max(0, health / maximum)) if has_health else None
@@ -872,12 +1199,9 @@ class RunAnalysis:
             progress.extend((self.text("map_act", act=stage[0]), self.text("map_floor", floor=stage[1])))
         self.player_progress.configure(text=("  " + " · ".join(progress)) if progress else "",
                                        image=(art.resource_icon("floor", self.character, (14, 14)) or "") if stage else "")
-        potions = player.get("potions")
         energy = player.get("energy")
         maximum_energy = player.get("max_energy")
-        values = {"gold": player.get("gold"), "block": player.get("block"),
-                  "potions": sum(isinstance(potion, dict) for potion in potions) if isinstance(potions, list) else None,
-                  "energy": energy}
+        values = {"gold": player.get("gold"), "block": player.get("block"), "energy": energy}
         for key, badge in self.resource_labels.items():
             number = values[key]
             if type(number) is not int:
@@ -887,6 +1211,7 @@ class RunAnalysis:
             badge.configure(text=f"  {self.text('resource_' + key)}  {value}",
                             image=art.resource_icon(key, self.character, (16, 16)) or "")
             badge.grid()
+        self.potion_strip.update(player, self.character, info.get("ascension"))
         photo = self.player_portrait(self.character)
         self.portrait_view.delete("all")
         if photo:
@@ -894,6 +1219,12 @@ class RunAnalysis:
         elif self.character:
             self.portrait_view.create_oval(36, 29, 70, 63, fill=HOVER, outline=BORDER, width=2)
             self.portrait_view.create_arc(21, 66, 85, 105, start=0, extent=180, outline=BORDER, fill=HOVER, width=2)
+
+    def is_live(self, info):
+        activity = info.get("last_updated") if info.get("source") == "steam_mod" else info.get("started")
+        started = self.stats.timestamp(activity) if self.stats else None
+        return (self.launcher.console_started is not None and started is not None
+                and started >= self.launcher.console_started and not info.get("ended"))
 
     def draw_player_health(self, _event=None):
         bar, recent = self.health_bar, self.recent_hp
@@ -1006,6 +1337,11 @@ class RunAnalysis:
 class RunHistory:
     def __init__(self, launcher):
         self.launcher = launcher
+        self.followed_start = None
+        self.transcript_key = None
+        self.entries = {}
+        self.signature = None
+        self.poll_id = None
         self.window = ttk.Frame(launcher.view_host)
         self.window.grid_columnconfigure(0, weight=1)
         self.window.grid_rowconfigure(2, weight=1)
@@ -1055,12 +1391,43 @@ class RunHistory:
                                    style="History.Vertical.TScrollbar")
         scrollbar.pack(side="right", fill="y")
         self.body.configure(yscrollcommand=scrollbar.set)
+        self.scrolling = ScrollGestures(self.tree), ScrollGestures(self.body)
         self.body.tag_configure("heading", font=launcher.fonts["button"], foreground=ACCENT, spacing3=8)
         self.body.tag_configure("step", font=launcher.fonts["small_bold"], foreground=ACCENT, spacing1=12)
         self.body.tag_configure("reason", foreground=MUTED, spacing3=6)
         self.body.tag_configure("player", foreground=ACCENT, spacing1=5, spacing3=6)
         self.select_detail("record_tab")
         self.refresh()
+        self.window.bind("<Destroy>", self.stop, add="+")
+        self.tick()
+
+    def tick(self):
+        if self.window.winfo_ismapped() and self.archive_signature() != self.signature:
+            self.refresh()
+        self.poll_id = self.window.after(1500, self.tick)
+
+    def stop(self, event):
+        if event.widget is self.window and self.poll_id:
+            self.window.after_cancel(self.poll_id)
+            self.poll_id = None
+
+    def archive_signature(self):
+        paths = set(HISTORY_DIR.glob("*/run.json"))
+        paths.update(path.parent for path in tuple(paths))
+        selected = self.tree.selection()
+        if selected and selected[0] in self.entries:
+            folder, _, scene = self.entries[selected[0]]
+            run = folder.parent if scene else folder
+            paths.update(run.glob("*.jsonl"))
+            paths.add(folder / "transcript.txt")
+        result = []
+        for path in sorted(paths):
+            try:
+                state = path.stat()
+            except OSError:
+                continue
+            result.append((path, state.st_mtime_ns, state.st_size))
+        return tuple(result)
 
     def select_detail(self, tab):
         self.detail_tab = tab
@@ -1086,6 +1453,7 @@ class RunHistory:
         return provider + (f" · {character}" if isinstance(character, str) and character else "")
 
     def refresh(self):
+        self.signature = self.archive_signature()
         title = self.launcher.text("history")
         self.heading.configure(text=title)
         self.refresh_button.configure(text=self.launcher.text("refresh"))
@@ -1121,6 +1489,14 @@ class RunHistory:
                 self.entries[scene_key] = (scene.parent, info, scene_info)
         if self.entries:
             key = previous[0] if previous and previous[0] in self.entries else next(iter(self.entries))
+            started = self.launcher.console_started
+            if started is not None and started != self.followed_start:
+                current = next((key for key, (_, info, scene) in self.entries.items()
+                                if scene is None and self.analysis.is_live(info)), None)
+                if current:
+                    key = current
+                    self.followed_start = started
+                    self.tree.item(key, open=True)
             self.tree.selection_set(key)
             self.tree.see(key)
         self.show_record()
@@ -1136,12 +1512,15 @@ class RunHistory:
 
     def show_record(self, _event=None):
         selected = self.tree.selection()
+        key = selected[0] if selected and selected[0] in self.entries else None
+        top = self.body.index("@0,0")
+        _, end = self.body.yview()
         self.body.configure(state="normal")
         self.body.delete("1.0", "end")
-        if not selected or selected[0] not in self.entries:
+        if key is None:
             self.body.insert("end", self.launcher.text("no_runs"))
         else:
-            folder, info, scene = self.entries[selected[0]]
+            folder, info, scene = self.entries[key]
             title = scene_title(self.launcher.language, scene) if scene else self.label(info)
             self.body.insert("end", title + "\n", "heading")
             messages = TEXT[self.launcher.language]
@@ -1167,6 +1546,11 @@ class RunHistory:
                     self.body.insert("end", line + "\n", "player")
                 elif not line or set(line.strip()) not in ({"─"}, {"═"}):
                     self.body.insert("end", line.rstrip() + "\n")
+            if self.analysis.is_live(info) and (key != self.transcript_key or end >= 0.98):
+                self.body.see("end")
+            elif key == self.transcript_key:
+                self.body.yview(top)
+        self.transcript_key = key
         self.body.configure(state="disabled")
         self.show_detail()
 
@@ -1296,7 +1680,6 @@ class PersonaEditor:
         self.provider = tk.StringVar(value=card["provider"])
         self.model = tk.StringVar(value=card["model"])
         self.enabled = tk.BooleanVar(value=card["enabled"])
-        self.trial = tk.BooleanVar(value=card["trial"])
         area = ttk.Frame(self.window, padding=16, style="Panel.TFrame")
         area.pack(fill="both", expand=True)
         area.grid_columnconfigure((0, 1), weight=1, uniform="persona_fields")
@@ -1330,13 +1713,13 @@ class PersonaEditor:
         self.ascension_box.grid(row=6, column=1, sticky="ew", padx=(8, 0))
         self.ascension_box.current(card["ascension"])
         ttk.Checkbutton(area, text=launcher.text("expression"), variable=self.enabled).grid(row=7, column=0, sticky="w", pady=(6, 0))
-        ttk.Checkbutton(area, text=launcher.text("test"), variable=self.trial).grid(row=7, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
         ttk.Label(area, text=launcher.text("identity_card")).grid(row=8, column=0, columnspan=2, sticky="w", pady=(12, 6))
         self.voice = tk.Text(area, width=44, height=6, wrap="word", bg=FIELD, fg=TEXT_COLOR,
                              insertbackground=TEXT_COLOR, font=launcher.fonts["body"], padx=8, pady=7,
                              relief="flat", highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
         self.voice.insert("1.0", card["identity"] if card_id else "")
         self.voice.grid(row=9, column=0, columnspan=2, sticky="ew")
+        self.voice_scrolling = ScrollGestures(self.voice, touch_only=True)
         ttk.Label(area, text=launcher.text("live_profile"), style="Caption.TLabel", wraplength=295).grid(
             row=10, column=0, sticky="w", pady=(10, 0))
         ttk.Button(area, text=launcher.text("save_profile"), style="Selected.TButton", command=self.save).grid(
@@ -1408,7 +1791,7 @@ class PersonaEditor:
         language = self.language.get().strip()
         cards[card_id] = module.clean_card({"name": name, "language": "" if language == self.follow_default else language,
                                            "provider": self.provider.get(), "model": self.model.get(),
-                                           "enabled": self.enabled.get(), "trial": self.trial.get(),
+                                           "enabled": self.enabled.get(),
                                            "character": CHARACTERS[self.role_box.current()],
                                            "ascension": int(self.ascension_box.get()),
                                            "identity": self.voice.get("1.0", "end-1c")}, name)
@@ -1447,6 +1830,7 @@ class RunChat:
         scroll = ttk.Scrollbar(chat, orient="vertical", command=self.body.yview, style="History.Vertical.TScrollbar")
         scroll.pack(side="right", fill="y")
         self.body.configure(yscrollcommand=scroll.set)
+        self.scrolling = ScrollGestures(self.runs), ScrollGestures(self.body)
         self.body.tag_configure("speaker", font=launcher.fonts["small_bold"], foreground=ACCENT, spacing1=7)
         self.body.tag_configure("message", background=PANEL, lmargin1=10, lmargin2=10, rmargin=25, spacing1=6, spacing3=8)
         self.body.tag_configure("context", font=launcher.fonts["small"], foreground=MUTED, spacing3=5)
@@ -1551,6 +1935,8 @@ class Launcher:
         game_pack = runpy.run_path(str(project / "python" / "portable_runtime.py"))["find_game_pack"]
         self.art = GameArt(project, game_pack, pack_reader["entries"], pack_reader["portrait"], root)
         self.art.refresh()
+        self.inventory_catalog = InventoryCatalog(project, art=self.art)
+        self.inventory_book = None
         expression_file = project / "agent" / "run_expression.py"
         self.expression_module = SimpleNamespace(**runpy.run_path(str(expression_file))) if expression_file.is_file() else None
         saved_language = self.preferences().get("ui_language")
@@ -1673,6 +2059,9 @@ class Launcher:
         self.persona_role_icon.pack(side="left", padx=(0, 5))
         self.run_preview = ttk.Label(preview_frame, style="Caption.TLabel")
         self.run_preview.pack(side="left")
+        self.steam_help = ttk.Label(self.api_panel, style="Caption.TLabel", justify="left")
+        self.steam_help.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        self.api_panel.bind("<Configure>", lambda event: self.steam_help.configure(wraplength=event.width))
 
         self.save_panel = ttk.Frame(panel, style="Panel.TFrame")
         self.save_panel.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(13, 0))
@@ -1690,9 +2079,11 @@ class Launcher:
 
         actions = ttk.Frame(panel, style="Panel.TFrame")
         actions.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(17, 0))
-        actions.grid_columnconfigure(1, weight=1)
-        self.start_button = ttk.Button(actions, width=13, style="Selected.TButton", command=self.start_game)
-        self.start_button.grid(row=0, column=1, sticky="e")
+        actions.grid_columnconfigure(0, weight=1)
+        self.start_button = ttk.Button(actions, style="Selected.TButton", command=self.start_game)
+        self.start_button.grid(row=0, column=0, sticky="e")
+        self.steam_run_button = ttk.Button(actions, style="Selected.TButton", command=self.start_steam_run)
+        self.steam_run_button.grid(row=0, column=1, sticky="e", padx=(8, 0))
         footer = ttk.Frame(content)
         footer.grid(row=2, column=1, sticky="ew", pady=(7, 0))
         self.status_label = ttk.Label(footer, style="Status.TLabel", wraplength=470)
@@ -1778,6 +2169,7 @@ class Launcher:
                                                  command=lambda language=language: self.select_default_speech(language))
             self.settings_menu.add_cascade(label=self.text("default_speech"), menu=self.speech_menu)
         self.settings_menu.add_separator()
+        self.settings_menu.add_command(label=book_title(self.language), command=self.show_inventory_book)
         self.settings_menu.add_command(label=self.text("save_settings"), command=self.show_save_settings)
         if self.expression_module:
             self.settings_menu.add_command(label=self.text("api_settings"), command=self.show_api_settings)
@@ -1787,9 +2179,11 @@ class Launcher:
     def show_about(self):
         credits = ("基于 wuhao21/sts2-cli，使用 MIT 许可证。\n"
                    "角色、状态、卡牌和地图图像 © Mega Crit，从本机 Steam 游戏读取。\n"
+                   "本地缓存的完整参考卡面由 Spire Codex 提供，卡面图像 © Mega Crit。\n"
                    "本地已有的 Wiki 卡牌小图来自灰机 Wiki。适用的站点内容采用 CC BY-NC-SA 4.0。") if engine_language(self.language) == "zh" else (
                    "Based on wuhao21/sts2-cli under the MIT license.\n"
                    "Character, status, card, and map art © Mega Crit, read from the local Steam game.\n"
+                   "Cached reference card renders are provided by Spire Codex. Card art © Mega Crit.\n"
                    "Existing local Wiki badges come from the Huiji STS2 Wiki card navigation page.\n"
                    "Huiji Wiki site content is published under CC BY-NC-SA 4.0 where applicable.")
         messagebox.showinfo(self.text("about"), f"{self.text('window')}\n\n{credits}", parent=self.root)
@@ -1814,6 +2208,13 @@ class Launcher:
             self.save_settings.window.lift()
         else:
             self.save_settings = SaveFolderSettings(self)
+
+    def show_inventory_book(self):
+        if self.inventory_book and self.inventory_book.window.winfo_exists():
+            self.inventory_book.window.lift()
+        else:
+            self.inventory_book = InventoryBook(self, background=BACKGROUND, foreground=TEXT_COLOR,
+                                                panel=PANEL, border=BORDER)
 
     def absolute_save_folder(self, value):
         if not isinstance(value, str) or not value.strip().strip('"'):
@@ -1864,7 +2265,9 @@ class Launcher:
         role = character_names(self.language)[CHARACTERS.index(card["character"])]
         self.draw_character_icon(self.persona_role_icon, card["character"])
         preview = self.text("run_preview", character=role, ascension=card["ascension"])
-        self.run_preview.configure(text=preview + " · " + self.text("test" if card["trial"] else "full_run"))
+        self.run_preview.configure(text=preview)
+        self.steam_help.configure(text=self.text(
+            "steam_mod_full_help", provider=f"{card['provider']} ({card['model']})"))
 
     def persist_expression(self, data, parent=None):
         try:
@@ -1904,6 +2307,8 @@ class Launcher:
             self.history.refresh()
         if self.chat and self.chat.window.winfo_exists():
             self.chat.refresh()
+        if self.inventory_book and self.inventory_book.window.winfo_exists():
+            self.inventory_book.refresh()
 
     def select_mode(self, mode):
         self.mode = mode
@@ -1952,9 +2357,9 @@ class Launcher:
         self.root.title(self.text("window"))
         for widget, label in ((self.title, "title"), (self.character_label, "character"),
                               (self.ascension_label, "ascension"), (self.persona_label, "ai_character"),
-                              (self.load_button, "load"), (self.start_button, "start"),
-                              (self.save_label, "choose_save"), (self.saves_refresh, "refresh"),
-                              (self.persona_panel_button, "persona_panel")):
+                              (self.load_button, "load"), (self.save_label, "choose_save"),
+                              (self.saves_refresh, "refresh"), (self.persona_panel_button, "persona_panel"),
+                              (self.steam_run_button, "steam_mod_full")):
             widget.configure(text=self.text(label))
         self.refresh_settings_menu()
         self.refresh_navigation()
@@ -1963,12 +2368,16 @@ class Launcher:
                              style="Selected.TButton" if name == self.mode else "TButton")
 
         if self.mode == "manual":
+            self.steam_run_button.grid_remove()
+            self.start_button.configure(text=self.text("start"), style="Selected.TButton")
             for widget in self.manual_fields:
                 widget.grid()
             self.api_panel.grid_remove()
             self.save_panel.grid()
             self.refresh_saves()
         else:
+            self.steam_run_button.grid()
+            self.start_button.configure(text=self.text("terminal_run"), style="Language.TButton")
             for widget in self.manual_fields:
                 widget.grid_remove()
             self.refresh_personas()
@@ -2007,8 +2416,6 @@ class Launcher:
 
         options = ["--character", card["character"], "--ascension", str(card["ascension"]),
                    "--provider", package, "--base-url", endpoint, "--model", model]
-        if card["trial"]:
-            options += ["--max-steps", "20"]
         self.launch_console("agent", options, credentials={env_name: key}, persona=(self.persona_id, card["name"]))
 
     def load_save(self):
@@ -2025,9 +2432,30 @@ class Launcher:
             return
         self.launch_console("play", ["--lang", engine_language(self.language), flag, str(selected)])
 
+    def start_steam_run(self):
+        if self.child is not None or not self.expression_module:
+            return
+        persona = self.selected_persona()
+        provider = persona["provider"]
+        package, _, env_name = PROVIDERS[provider]
+        key = self.api_keys[provider].get().strip()
+        title = self.text("steam_mod_full")
+        if not key:
+            messagebox.showerror(title, self.text("missing_key", provider=provider), parent=self.root)
+            self.show_api_settings()
+            return
+        if importlib.util.find_spec(package) is None:
+            if messagebox.askyesno(title, self.text("missing_sdk", package=package), parent=self.root):
+                self.launch_console("install", [package])
+            return
+
+        model_flag = "--claude-model" if provider == "Claude" else "--deepseek-model"
+        options = ["--checkpoint", "run", "--retry-current-event", model_flag, persona["model"]]
+        self.launch_console("steam_mod", options, credentials={env_name: key})
+
     def launch_console(self, task, options, credentials=None, persona=None):
         bundled = self.project / "runtime" / "dotnet" / "dotnet.exe"
-        if task != "install" and not bundled.is_file() and shutil.which("dotnet") is None:
+        if task in ("play", "agent") and not bundled.is_file() and shutil.which("dotnet") is None:
             messagebox.showerror(self.text("window"), self.text("missing_dotnet"), parent=self.root)
             return
         python = Path(sys.executable).with_name("python.exe")
@@ -2053,25 +2481,27 @@ class Launcher:
         except OSError as error:
             messagebox.showerror(self.text("window"), str(error), parent=self.root)
             return
-        self.console_started = started if task != "install" else None
-        self.start_button.state(["disabled"])
-        self.load_button.state(["disabled"])
+        self.console_started = started if task in ("play", "agent", "steam_mod") else None
+        if self.console_started is not None and self.history:
+            self.history.followed_start = None
+        for button in (self.start_button, self.load_button, self.steam_run_button):
+            button.state(["disabled"])
         self.status_key = "installing" if task == "install" else "running"
         self.status_label.configure(text=self.text(self.status_key))
         self.root.after(450, self.poll_console)
 
     def poll_console(self):
-        if self.child.poll() is None:
-            if self.page == "history" and self.history.detail_tab in ("analysis_tab", "map_tab"):
-                self.history.refresh()
+        exit_code = self.child.poll()
+        if exit_code is None:
             self.root.after(1200, self.poll_console)
             return
         self.child = None
         self.console_started = None
-        self.start_button.state(["!disabled"])
+        for button in (self.start_button, self.steam_run_button):
+            button.state(["!disabled"])
         if self.mode == "manual":
             self.refresh_saves()
-        self.status_key = "finished"
+        self.status_key = "finished" if exit_code in (0, 130, 0xC000013A) else "console_failed"
         self.status_label.configure(text=self.text(self.status_key))
         if self.page == "history":
             self.history.refresh()
@@ -2241,6 +2671,12 @@ def run_console(language, task, options):
         except OSError as error:
             print(error, file=sys.stderr)
             exit_code = 1
+    elif task == "steam_mod":
+        try:
+            steam_agent = runpy.run_path(str(LAUNCHER.parent / "agent" / "steam_mod_agent.py"))
+            exit_code = steam_agent["main"](options)
+        except KeyboardInterrupt:
+            exit_code = 130
     else:
         exit_code = run_recorded_game(language, task, options)
 

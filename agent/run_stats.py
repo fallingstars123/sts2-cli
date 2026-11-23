@@ -1,5 +1,6 @@
 """Observed outcomes and progress estimates from the launcher's run archive."""
 
+from collections import Counter
 from datetime import datetime
 import json
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 
 FINISHED = {"victory", "defeat"}
 AI_PROVIDERS = ("DeepSeek", "Claude")
+POTION_SLOT_RELICS = {"ALCHEMICAL_COFFER": 4, "PHIAL_HOLSTER": 1, "POTION_BELT": 2}
 
 
 def json_dict(path):
@@ -110,6 +112,10 @@ def run_progress(folder):
     """Align health and progress snapshots to issued gameplay actions."""
     points = {}
     latest = {}
+    previous_relics = Counter()
+    potion_slots_added = 0
+    known_potion_capacity = None
+    additions_at_capture = 0
     step = 0
     for record in game_records(folder):
         data = record.get("data")
@@ -124,6 +130,19 @@ def run_progress(folder):
         if not isinstance(player, dict) or not position:
             continue
         latest = {**latest, **player, "act": position[0], "floor": position[1]}
+        relics = player.get("relics")
+        if isinstance(relics, list):
+            owned = Counter(relic["id"].rsplit(".", 1)[-1].upper() for relic in relics
+                            if isinstance(relic, dict) and isinstance(relic.get("id"), str))
+            # These relics grant capacity on pickup. Losing one does not remove the slots.
+            potion_slots_added += sum(added * (owned[key] - previous_relics[key])
+                                      for key, added in POTION_SLOT_RELICS.items()
+                                      if owned[key] > previous_relics[key])
+            previous_relics = owned
+        capacity = player.get("potion_capacity")
+        if type(capacity) is int and capacity >= 0:
+            known_potion_capacity = capacity
+            additions_at_capture = potion_slots_added
         for field in ("energy", "max_energy"):
             value = data.get(field)
             if data.get("decision") == "combat_play" and type(value) is int:
@@ -133,4 +152,8 @@ def run_progress(folder):
         hp, maximum = player.get("hp"), player.get("max_hp")
         if type(hp) is int and type(maximum) is int and maximum > 0:
             points[step] = (step, max(0, min(100, 100 * hp / maximum)), position)
+    if potion_slots_added:
+        latest["potion_slots_added"] = potion_slots_added
+    if known_potion_capacity is not None:
+        latest["potion_capacity"] = known_potion_capacity + potion_slots_added - additions_at_capture
     return list(points.values()), latest

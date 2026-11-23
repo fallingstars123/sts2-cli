@@ -233,16 +233,37 @@ def _id_to_name(model_id):
     name = parts[-1] if len(parts) > 1 else model_id
     return name.replace("_", " ").title()
 
+def _invalid_save(save_path, message):
+    print(f"{t('Error:', '错误:')} {message}: {save_path}")
+    raise SystemExit(1)
+
+
+def _read_save_object(save_path):
+    try:
+        with open(save_path, encoding="utf-8-sig") as f:
+            data = json.load(f)
+    except OSError:
+        _invalid_save(save_path, t("Could not read save file", "无法读取存档"))
+    except (ValueError, RecursionError):
+        _invalid_save(save_path, t("Save file is not valid JSON", "存档不是有效的 JSON"))
+    if not isinstance(data, dict):
+        _invalid_save(save_path, t("Save file must contain a JSON object", "存档必须包含一个 JSON 对象"))
+    return data
+
+
 def show_native_save(save_path):
     """Parse and display a native current_run.save file."""
+    data = _read_save_object(save_path)
+    players = data.get("players")
+    if not isinstance(players, list) or not players or not all(isinstance(player, dict) for player in players):
+        _invalid_save(save_path, t("Native save is missing player data", "原生存档缺少角色数据"))
     try:
-        with open(save_path) as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        print(f"{t('Error:','错误:')} Save file is not valid JSON: {save_path}")
-        print(f"  {e}")
-        sys.exit(1)
+        _display_native_save(save_path, data)
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError):
+        _invalid_save(save_path, t("Native save contains invalid fields", "原生存档包含无效字段"))
 
+
+def _display_native_save(save_path, data):
     print(f"\n{'═' * 60}")
     print(f"  {t('Native Save File', '游戏原生存档')}")
     print(f"  {save_path}")
@@ -1404,17 +1425,16 @@ def _save_game(save_path, character, seed, action_log):
 
 def _load_game(save_path):
     """Read action replay save file. Returns (character, seed, actions)."""
-    try:
-        with open(save_path) as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        print(f"{t('Error:','错误:')} Save file is not valid JSON: {save_path}")
-        print(f"  {e}")
-        sys.exit(1)
-    if "actions" not in data:
-        print(f"{t('Error:','错误:')} Not a replay save file (missing 'actions' key): {save_path}")
-        sys.exit(1)
-    return data["character"], data["seed"], data["actions"]
+    data = _read_save_object(save_path)
+    character, seed, actions = data.get("character"), data.get("seed"), data.get("actions")
+    if not isinstance(character, str) or not character.strip() or not isinstance(seed, str) or not isinstance(actions, list):
+        _invalid_save(save_path, t("Invalid replay save fields", "回放存档字段无效"))
+    for index, command in enumerate(actions, 1):
+        if (not isinstance(command, dict) or command.get("cmd") != "action"
+                or not isinstance(command.get("action"), str) or not command["action"].strip()
+                or not isinstance(command.get("args", {}), dict)):
+            _invalid_save(save_path, t(f"Invalid replay action {index}", f"回放存档中的第 {index} 步无效"))
+    return character, seed, actions
 
 def _list_saves():
     """List available save files (replay .json and native .save files)."""
@@ -1569,10 +1589,11 @@ def play(character="Ironclad", seed=None, auto=False, ascension=0, log=True,
                 {"cmd": "load_save", "path": native_save_path, "lang": game_lang},
                 record=False,
             )
-            if state and state.get("type") == "error":
-                print(f"  {c(t('Error:','错误:'), 'red')} {state.get('message', '?')}")
-                return
-            p = state.get("player", {}) if state else {}
+            if not state or state.get("type") == "error":
+                message = (state or {}).get("message") or t("Simulator did not load the save.", "模拟器未能加载存档。")
+                print(f"  {c(t('Error:','错误:'), 'red')} {message}")
+                raise SystemExit(1)
+            p = state.get("player", {})
             character = character_id(p.get("character_id")) or character_id(p.get("name")) or character
             print(f"  {c(t('Save loaded!','存档加载成功!'), 'green')}")
         else:
@@ -1595,11 +1616,13 @@ def play(character="Ironclad", seed=None, auto=False, ascension=0, log=True,
                 total = len(replay_actions)
                 for i, cmd in enumerate(replay_actions):
                     state = send(cmd, record=True)
+                    if not state or state.get("type") == "error":
+                        message = (state or {}).get("message", t("No simulator response.", "模拟器没有响应。"))
+                        label = t(f"Replay failed at action {i + 1}", f"回放在第 {i + 1} 步失败")
+                        print(f"\n  {c(label, 'red')}: {message}")
+                        raise SystemExit(1)
                     pct = (i + 1) * 100 // total
                     print(f"\r  {t('Replaying','回放中')}... {pct}% ({i+1}/{total})", end="", flush=True)
-                    if not state:
-                        print(f"\n{c(t('Replay failed at action','回放失败于操作'), 'red')} {i+1}")
-                        return
                 print(f"\r  {c(t('Replay complete!','回放完成!'), 'green')}" + " " * 30)
                 print()
         print(f"\n{c(t('Slay the Spire 2 — Headless CLI', '杀戮尖塔 2 — 终端版'), 'bold')}")

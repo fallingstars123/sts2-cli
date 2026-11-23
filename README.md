@@ -2,7 +2,7 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-A Windows desktop launcher for [sts2-cli](https://github.com/wuhao21/sts2-cli). Play manually or let a DeepSeek or Claude persona play, then review each room of the run. Play uses your local Steam game engine, with actions and game state shown in the game terminal.
+A Windows desktop launcher for [sts2-cli](https://github.com/wuhao21/sts2-cli). Play manually or let a DeepSeek or Claude persona play, then review each room of the run. Play in a terminal with your local game engine, or let AI take over an active single-player run in the Steam game.
 
 ## Download and play
 
@@ -10,9 +10,13 @@ A Windows desktop launcher for [sts2-cli](https://github.com/wuhao21/sts2-cli). 
 
 1. Install **Slay the Spire 2** through Steam and download the ZIP.
 2. Extract the entire ZIP into a writable folder and double-click `Start STS2.cmd`.
-3. Choose **Manual** or **AI play** and select **Start run**. On the first run, the launcher locates your Steam game automatically. If it asks for a folder, select the installed game folder.
+3. For manual play, choose **Start run**. In **AI play**, choose a persona and select **Steam Full Run** or **Play in terminal**. On first terminal play, the launcher locates your Steam game automatically.
 
 The ZIP includes Python and .NET. With the Steam game installed, manual play, saves, maps, and analysis work offline. For AI play, save your provider key in **API settings** under the gear menu and select a model in **Persona panel**. AI play, model refresh, and installing a missing AI client require an internet connection.
+
+### Steam Full Run
+
+Enable **STS2 Live Bridge**, open a standard single-player run in Steam, and choose **AI play → Steam Full Run**. The selected DeepSeek or Claude model takes over the run you have open. The launcher records rooms, decisions, and results as you play. See the [Steam setup guide](docs/steam-mod.md) for installation and troubleshooting.
 
 ![English launcher showing the selected AI persona, speaking language, and model](docs/screenshots/launcher-en.png)
 
@@ -37,6 +41,7 @@ The conversations, runs, and statistics below use sample data.
 
 ## Docs and license
 
+- [Steam Live Bridge installation and full-run guide](docs/steam-mod.md)
 - [Desktop launcher guide](docs/desktop-launcher.md)
 - [Command-line play, source builds, and JSON protocol](docs/cli.md)
 - [Release notes and downloads](https://github.com/fallingstars123/sts2-cli/releases)

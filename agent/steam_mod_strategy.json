@@ -1,0 +1,1719 @@
+{
+  "sources": {
+    "ironclad": {
+      "title": "Slay the Spire 2 Ironclad card picks for beginners",
+      "author": "优雅可爱小青",
+      "published": "2026-03-12",
+      "url": "https://www.bilibili.com/opus/1178750553194233864"
+    },
+    "silent": {
+      "title": "Slay the Spire 2 strong Silent decks",
+      "author": "优雅可爱小青",
+      "published": "2026-03-09",
+      "url": "https://www.bilibili.com/opus/1177763092994457607"
+    },
+    "regent": {
+      "title": "Regent archetypes and deck construction",
+      "author": "Ultima-015",
+      "posted_by": "alittlebad",
+      "published": "2026-03-22",
+      "url": "https://www.bilibili.com/opus/1182452905229156377",
+      "creator_url": "https://www.bilibili.com/video/BV1w1wxzvEtF/"
+    },
+    "necrobinder": {
+      "title": "Necrobinder archetypes and deck construction",
+      "author": "Ultima-015",
+      "posted_by": "alittlebad",
+      "published": "2026-03-23",
+      "url": "https://www.bilibili.com/opus/1182806204906209280",
+      "creator_url": "https://www.bilibili.com/video/BV1n3PQzrEvs/"
+    },
+    "defect": {
+      "title": "Slay the Spire 2 Defect card commentary",
+      "author": "海陆空三修玩家",
+      "published": "2026-03-08",
+      "url": "https://www.bilibili.com/opus/1177296638057644035"
+    },
+    "fool": {
+      "title": "A10 Fool archery commentary",
+      "author": "Redoner红一",
+      "published": "2026-11-20",
+      "medium": "User-supplied Chinese transcript"
+    }
+  },
+  "card_recommendations": {
+    "IRONCLAD": {
+      "source": "ironclad",
+      "named": [
+        {
+          "cards": [
+            "POMMEL_STRIKE",
+            "ARMAMENTS",
+            "FEED",
+            "FLAME_BARRIER"
+          ],
+          "priority": "high",
+          "when": "Fill immediate damage plus draw, useful combat upgrades, safe Feed lethal or a multi-hit defense gap."
+        },
+        {
+          "cards": [
+            "OFFERING",
+            "CRIMSON_MANTLE"
+          ],
+          "priority": "high",
+          "when": "Price HP loss against extra energy and draw now or repeatable Block over several turns."
+        },
+        {
+          "cards": [
+            "ANGER",
+            "IRON_WAVE",
+            "BREAKTHROUGH"
+          ],
+          "priority": "bridge",
+          "when": "Bridge with cheap damage, attack plus Block, or immediate area damage. Avoid crowding out draw later."
+        },
+        {
+          "cards": [
+            "SHRUG_IT_OFF",
+            "TAUNT",
+            "IMPERVIOUS"
+          ],
+          "priority": "bridge",
+          "when": "Cover pressure with Block and draw, Block and Vulnerable, or a one-turn emergency Block card."
+        },
+        {
+          "cards": [
+            "HELLRAISER",
+            "PERFECTED_STRIKE",
+            "PILLAGE"
+          ],
+          "priority": "conditional",
+          "when": "Count actual Strike or Attack density and useful cards that follow. Allow setup only if the next fights permit it."
+        },
+        {
+          "cards": [
+            "UNRELENTING",
+            "BLUDGEON",
+            "STAMPEDE"
+          ],
+          "priority": "conditional",
+          "when": "Pair discounted or automatic Attacks with worthwhile targets. Budget expensive Attack draws and random targeting."
+        },
+        {
+          "cards": [
+            "STOMP",
+            "EXPECT_A_FIGHT",
+            "SETUP_STRIKE",
+            "RAGE",
+            "CONFLAGRATION"
+          ],
+          "priority": "conditional",
+          "when": "Prefer when cheap Attacks already support same-turn attack count, energy, temporary Strength, Block or area burst."
+        },
+        {
+          "cards": [
+            "PRIMAL_FORCE"
+          ],
+          "priority": "conditional",
+          "when": "Compare the transformed attacks with the originals. Preserve a key Attack if its existing effect is more valuable."
+        },
+        {
+          "cards": [
+            "BARRICADE",
+            "JUGGERNAUT",
+            "UNMOVABLE"
+          ],
+          "priority": "conditional",
+          "when": "Only take slow Block payoffs if Block is already reliable and the deck can afford setup turns."
+        },
+        {
+          "cards": [
+            "BURNING_PACT",
+            "TRUE_GRIT",
+            "BRAND",
+            "SECOND_WIND",
+            "STOKE",
+            "HAVOC"
+          ],
+          "priority": "conditional",
+          "when": "Add controllable Exhaust for draw, defense or thinning. Check which cards the live effect can remove."
+        },
+        {
+          "cards": [
+            "PACTS_END",
+            "FEEL_NO_PAIN",
+            "HOWL_FROM_BEYOND",
+            "FIEND_FIRE",
+            "EVIL_EYE",
+            "ASHEN_STRIKE",
+            "DARK_EMBRACE",
+            "CORRUPTION",
+            "FORGOTTEN_RITUAL"
+          ],
+          "priority": "conditional",
+          "when": "Reward repeatable Exhaust. Check timing, useful targets, remaining defense, and how the deck finishes after thinning."
+        },
+        {
+          "cards": [
+            "BLOODLETTING",
+            "RUPTURE",
+            "SPITE",
+            "TEAR_ASUNDER",
+            "BLOOD_WALL"
+          ],
+          "priority": "conditional",
+          "when": "Self-HP loss needs a real payoff, enough HP and a way to spend energy or capitalize on repeated triggers."
+        },
+        {
+          "cards": [
+            "RAMPAGE",
+            "HEADBUTT",
+            "THRASH",
+            "ONE_TWO_PUNCH"
+          ],
+          "priority": "conditional",
+          "when": "Find a strong repeat target and sufficient draw. For Thrash, account for the attacks that could be exhausted."
+        },
+        {
+          "cards": [
+            "TWIN_STRIKE",
+            "WHIRLWIND",
+            "SWORD_BOOMERANG",
+            "INFLAME"
+          ],
+          "priority": "conditional",
+          "when": "Strength likes repeat hits. Check energy for Whirlwind and whether random hits can meet the target's lethal threshold."
+        },
+        {
+          "cards": [
+            "THUNDERCLAP",
+            "TREMBLE",
+            "VICIOUS",
+            "DISMANTLE",
+            "MOLTEN_FIST",
+            "COLOSSUS",
+            "BULLY",
+            "CRUELTY",
+            "BREAK"
+          ],
+          "priority": "conditional",
+          "when": "Use efficient Vulnerable sources first. Add only payoffs that can trigger often or solve a specific fight."
+        },
+        {
+          "cards": [
+            "CASCADE",
+            "PYRE"
+          ],
+          "priority": "conditional",
+          "when": "Take when the deck can exploit variable energy or next-turn energy and already handles setup pressure."
+        },
+        {
+          "cards": [
+            "CINDER",
+            "BATTLE_TRANCE",
+            "DRUM_OF_BATTLE",
+            "DEMON_FORM"
+          ],
+          "priority": "usually_skip",
+          "when": "Prefer cheaper or more controllable options unless the next fight rewards this timing or slow scaling."
+        }
+      ],
+      "functional_examples": [
+        {
+          "cards": [
+            "HEMOKINESIS"
+          ],
+          "role": "Immediate damage or deliberate self-damage when HP can pay for it"
+        },
+        {
+          "cards": [
+            "DOMINATE"
+          ],
+          "role": "Vulnerable with Strength upside when the deck can attack repeatedly"
+        }
+      ],
+      "build_directions": [
+        {
+          "name": "Act 1 survival",
+          "seek": "Seek efficient front-loaded damage, an area attack if needed, and Block with draw or debuffs."
+        },
+        {
+          "name": "Exhaust and cycling",
+          "anchors": [
+            "BURNING_PACT",
+            "TRUE_GRIT",
+            "FEEL_NO_PAIN",
+            "EVIL_EYE",
+            "DARK_EMBRACE",
+            "CORRUPTION"
+          ],
+          "seek": "Find controllable Exhaust and cheap cycling, then one defense or damage payoff."
+        },
+        {
+          "name": "Strength and multi-hit",
+          "anchors": [
+            "INFLAME",
+            "BRAND",
+            "DEMON_FORM",
+            "RUPTURE",
+            "VETERAN",
+            "WHIRLWIND",
+            "TWIN_STRIKE"
+          ],
+          "seek": "Find repeat hits or cheap attacks after obtaining Strength; pay for repeatable self-damage only when it improves the HP budget."
+        },
+        {
+          "name": "Vulnerable and cheap attacks",
+          "anchors": [
+            "TAUNT",
+            "THUNDERCLAP",
+            "TREMBLE",
+            "VICIOUS",
+            "HELLRAISER"
+          ],
+          "seek": "Seek reliable Vulnerable and draw or Strike density based on the actual payoff; keep enough Block."
+        }
+      ]
+    },
+    "SILENT": {
+      "source": "silent",
+      "named": [
+        {
+          "cards": [
+            "ADRENALINE",
+            "CALCULATED_GAMBLE"
+          ],
+          "priority": "high",
+          "when": "Improve access to your engine. Check hand slots and usable cards before trading the hand for a redraw."
+        },
+        {
+          "cards": [
+            "SERPENT_FORM"
+          ],
+          "priority": "conditional",
+          "when": "Cheap repeated plays can fund its setup. Allow for random targets and compare which incoming damage the setup leaves open."
+        },
+        {
+          "cards": [
+            "STORM_OF_STEEL",
+            "BLADE_DANCE"
+          ],
+          "priority": "conditional",
+          "when": "Generate Shivs when they fill a damage gap. Price discarded defense and check the hand cap."
+        },
+        {
+          "cards": [
+            "ACCURACY",
+            "PHANTOM_BLADES",
+            "KNIFE_TRAP"
+          ],
+          "priority": "conditional",
+          "when": "Pick when Shivs are frequent. Distinguish all-Shiv damage, first-Shiv/Retain value, and replay of exhausted Shivs."
+        },
+        {
+          "cards": [
+            "CORROSIVE_WAVE"
+          ],
+          "priority": "high",
+          "when": "Compare for group scaling when the deck can draw after playing it and still afford defense."
+        },
+        {
+          "cards": [
+            "ACCELERANT",
+            "BUBBLE_BUBBLE"
+          ],
+          "priority": "conditional",
+          "when": "Add a poison payoff when you can apply enough Poison on the relevant targets early."
+        },
+        {
+          "cards": [
+            "POISONED_STAB",
+            "BACKFLIP",
+            "ACROBATICS"
+          ],
+          "priority": "bridge",
+          "when": "Use damage plus Poison, Block plus draw, or discard cycling to fix the actual gap."
+        },
+        {
+          "cards": [
+            "HAZE",
+            "NOXIOUS_FUMES",
+            "DEADLY_POISON",
+            "SNAKEBITE",
+            "OUTBREAK"
+          ],
+          "priority": "conditional",
+          "when": "Add Poison at the speed and target coverage the next fight needs; avoid stacking slow applications without defense."
+        },
+        {
+          "cards": [
+            "TACTICIAN",
+            "MEMENTO_MORI",
+            "HAND_TRICK",
+            "UNTOUCHABLE"
+          ],
+          "priority": "conditional",
+          "when": "Take a discard or Sly payoff when reliable enablers can trigger it; count hand slots and usable energy."
+        }
+      ],
+      "functional_examples": [
+        {
+          "cards": [
+            "LEADING_STRIKE",
+            "CLOAK_AND_DAGGER"
+          ],
+          "role": "Shiv generation with immediate damage or Block; score spawned Shivs separately from the source"
+        },
+        {
+          "cards": [
+            "DAGGER_THROW",
+            "PREPARED",
+            "REFLEX"
+          ],
+          "role": "Early damage or low-cost hand filtering plus controlled discard"
+        },
+        {
+          "cards": [
+            "LEG_SWEEP"
+          ],
+          "role": "Immediate mitigation while a Shiv or Poison engine sets up"
+        },
+        {
+          "cards": [
+            "FAN_OF_KNIVES",
+            "SHARP_EDGE"
+          ],
+          "role": "Area Shiv payoff or upgrade for newly generated Shivs"
+        }
+      ],
+      "build_directions": [
+        {
+          "name": "Act 1 survival",
+          "seek": "Seek cheap direct damage, Weak, and Block that cycles before committing to an engine."
+        },
+        {
+          "name": "Shivs",
+          "anchors": [
+            "SERPENT_FORM",
+            "STORM_OF_STEEL",
+            "BLADE_DANCE",
+            "LEADING_STRIKE",
+            "ACCURACY",
+            "KNIFE_TRAP"
+          ],
+          "seek": "Seek the missing side of Shiv supply and payoff, then draw and Block. Count generated damage separately and leave hand space."
+        },
+        {
+          "name": "Poison and Corrosive Wave",
+          "anchors": [
+            "CORROSIVE_WAVE",
+            "ACCELERANT",
+            "NOXIOUS_FUMES",
+            "HAZE",
+            "BUBBLE_BUBBLE"
+          ],
+          "seek": "Seek draw after Corrosive Wave, enough early Poison for its payoffs, and Block for the setup turns."
+        },
+        {
+          "name": "Discard and Sly",
+          "anchors": [
+            "ACROBATICS",
+            "CALCULATED_GAMBLE",
+            "TACTICIAN",
+            "REFLEX",
+            "PREPARED",
+            "UNTOUCHABLE"
+          ],
+          "seek": "Seek reliable discard outlets, cheap draw and energy that can be spent on the new hand."
+        }
+      ]
+    },
+    "DEFECT": {
+      "source": "defect",
+      "named": [
+        {
+          "cards": [
+            "GENETIC_ALGORITHM",
+            "MACHINE_LEARNING",
+            "OVERCLOCK",
+            "TURBO"
+          ],
+          "priority": "high",
+          "when": "Compare permanent Block growth, repeatable draw or immediate draw/energy against current pressure and Status costs."
+        },
+        {
+          "cards": [
+            "FOCUSED_STRIKE",
+            "MOMENTUM_STRIKE",
+            "BOOST_AWAY",
+            "LIGHTNING_ROD",
+            "SHADOW_SHIELD",
+            "GLASSWORK"
+          ],
+          "priority": "bridge",
+          "when": "Cover early damage, Block or orb production. Count generated Status and immediate orb effects."
+        },
+        {
+          "cards": [
+            "SPINNER",
+            "REFRACT",
+            "HYPERBEAM"
+          ],
+          "priority": "conditional",
+          "when": "Choose for needed area damage. Account for delayed Glass, the cost of Refraction or temporary loss of Focus."
+        },
+        {
+          "cards": [
+            "VOLTAIC",
+            "THUNDER",
+            "TESLA_COIL"
+          ],
+          "priority": "conditional",
+          "when": "Take with real Lightning throughput. Prefer targeted output when killing a priority enemy saves damage."
+        },
+        {
+          "cards": [
+            "DEFRAGMENT",
+            "HOTFIX",
+            "BIASED_COGNITION",
+            "SYNCHRONIZE",
+            "COOLANT",
+            "ICE_LANCE",
+            "MODDED"
+          ],
+          "priority": "conditional",
+          "when": "Check the orb mix, slots, time to evoke and effective Focus. Account for Focus loss and heavy setup."
+        },
+        {
+          "cards": [
+            "DARKNESS",
+            "SHATTER",
+            "CONSUMING_SHADOW"
+          ],
+          "priority": "conditional",
+          "when": "Grow and evoke Dark with suitable timing. Repeated forced evocation can spend the orb before it grows."
+        },
+        {
+          "cards": [
+            "GUNK_UP",
+            "FIGHT_THROUGH",
+            "ROCKET_PUNCH",
+            "COMPACT",
+            "ITERATION",
+            "SMOKESTACK",
+            "TRASH_TO_TREASURE",
+            "FLAK_CANNON"
+          ],
+          "priority": "conditional",
+          "when": "Separate the value of creating Status from drawing or spending one. Need enough triggers and room to keep drawing useful cards."
+        },
+        {
+          "cards": [
+            "ADAPTIVE_STRIKE",
+            "FERAL",
+            "HELIX_DRILL",
+            "BULK_UP"
+          ],
+          "priority": "conditional",
+          "when": "Consider repeatable low-cost attacks and recycling, or Helix Drill only if this deck spends enough energy first."
+        },
+        {
+          "cards": [
+            "SYNTHESIS",
+            "SUBROUTINE",
+            "SIGNAL_BOOST",
+            "CREATIVE_AI"
+          ],
+          "priority": "conditional",
+          "when": "Find an affordable Power setup and a useful Power to copy. Check when the energy and generated Powers become usable."
+        },
+        {
+          "cards": [
+            "SUPERCRITICAL",
+            "UPROAR"
+          ],
+          "priority": "usually_skip",
+          "when": "Reconsider when the deck can absorb their drawback or exploit their specific output; favor steady draw or Block otherwise."
+        }
+      ],
+      "functional_examples": [
+        {
+          "cards": [
+            "BALL_LIGHTNING",
+            "COLD_SNAP",
+            "COOLHEADED",
+            "GLACIER"
+          ],
+          "role": "Immediate damage or defense with a Lightning/Frost source and accessible draw"
+        },
+        {
+          "cards": [
+            "HOLOGRAM",
+            "ALL_FOR_ONE"
+          ],
+          "role": "Targeted discard recovery or repeated zero-cost attacks and utility"
+        },
+        {
+          "cards": [
+            "BEAM_CELL",
+            "GO_FOR_THE_EYES"
+          ],
+          "role": "Cheap targeted debuffs to support zero-cost replay and immediate combat"
+        }
+      ],
+      "build_directions": [
+        {
+          "name": "Act 1 survival",
+          "seek": "Seek front-loaded damage, Block, and area output that arrives before enemies snowball."
+        },
+        {
+          "name": "Orb engine",
+          "anchors": [
+            "LIGHTNING_ROD",
+            "TESLA_COIL",
+            "VOLTAIC",
+            "DEFRAGMENT",
+            "DARKNESS",
+            "GLACIER",
+            "BIASED_COGNITION"
+          ],
+          "seek": "Find enough channel, Focus or controlled evocation for your current orb mix. Preserve Frost if it is the main defense."
+        },
+        {
+          "name": "Status cards",
+          "anchors": [
+            "COMPACT",
+            "ITERATION",
+            "OVERCLOCK",
+            "SMOKESTACK",
+            "TRASH_TO_TREASURE",
+            "ROCKET_PUNCH"
+          ],
+          "seek": "Match each payoff to its creation, drawing or consumption trigger and preserve draw quality."
+        },
+        {
+          "name": "Cheap-card replay",
+          "anchors": [
+            "HOLOGRAM",
+            "ALL_FOR_ONE",
+            "FERAL",
+            "ADAPTIVE_STRIKE",
+            "HELIX_DRILL"
+          ],
+          "seek": "Seek usable zero-cost targets, retrieval, draw and energy; add a finisher only after the loop can run."
+        }
+      ]
+    },
+    "NECROBINDER": {
+      "source": "necrobinder",
+      "named": [
+        {
+          "cards": [
+            "GRAVE_WARDEN",
+            "DEFY",
+            "SEANCE",
+            "PARSE"
+          ],
+          "priority": "high",
+          "when": "Keep defenses and draw accessible. Count Ethereal timing and whether a Soul will be drawn soon enough."
+        },
+        {
+          "cards": [
+            "SCOURGE",
+            "DEATHBRINGER",
+            "END_OF_DAYS"
+          ],
+          "priority": "bridge",
+          "when": "Solve early Doom access, multi-target pressure, or an immediate execution threshold using live effects."
+        },
+        {
+          "cards": [
+            "CAPTURE_SPIRIT",
+            "DIRGE"
+          ],
+          "priority": "conditional",
+          "when": "Create Souls if the deck can draw and reuse the engine. Budget X energy and time to access those cards."
+        },
+        {
+          "cards": [
+            "INVOKE",
+            "BORROWED_TIME",
+            "FRIENDSHIP",
+            "NEUROSURGE"
+          ],
+          "priority": "conditional",
+          "when": "Price current costs, next-turn energy, per-card surcharges, Strength loss or self-Doom from the actual card."
+        },
+        {
+          "cards": [
+            "HAUNT",
+            "DEATH_MARCH",
+            "SOUL_STORM",
+            "DEVOUR_LIFE",
+            "TRANSFIGURE"
+          ],
+          "priority": "conditional",
+          "when": "Take a Soul, draw, or Replay payoff only when the deck can fund its trigger. One reliable damage payoff can suffice."
+        },
+        {
+          "cards": [
+            "VEILPIERCER",
+            "SCULPTING_STRIKE"
+          ],
+          "priority": "bridge",
+          "when": "Pick for immediate damage or when Ethereal reliably makes a valuable card cheaper. Check the order and the cost of losing a card."
+        },
+        {
+          "cards": [
+            "PAGESTORM",
+            "PULL_FROM_BELOW",
+            "CALL_OF_THE_VOID",
+            "SPIRIT_OF_ASH",
+            "DEMESNE",
+            "BANSHEES_CRY"
+          ],
+          "priority": "conditional",
+          "when": "Match each bonus to actual Ethereal draws or plays, affordability, and the need for defense or burst."
+        },
+        {
+          "cards": [
+            "DEATHS_DOOR",
+            "NO_ESCAPE",
+            "OBLIVION"
+          ],
+          "priority": "conditional",
+          "when": "Pair with reliable Doom application. Block before the delayed Doom check unless the live action kills immediately."
+        },
+        {
+          "cards": [
+            "BONE_SHARDS",
+            "FLATTEN"
+          ],
+          "priority": "conditional",
+          "when": "Count current Osty HP and attacks. Bone Shards trades away Osty, and Flatten's discount requires a same-turn attack."
+        },
+        {
+          "cards": [
+            "DEBILITATE"
+          ],
+          "priority": "conditional",
+          "when": "Take only if there is enough Weak or Vulnerable to amplify and it addresses a meaningful threat."
+        },
+        {
+          "cards": [
+            "HANG"
+          ],
+          "priority": "high",
+          "when": "If it is the finisher, use a compact deck and draw to recur it on one target. Respect Intangible and immediate defense."
+        },
+        {
+          "cards": [
+            "COUNTDOWN",
+            "SLEIGHT_OF_FLESH",
+            "REAPER_FORM",
+            "TIMES_UP"
+          ],
+          "priority": "usually_skip",
+          "when": "Wait until defense is stable and the deck can afford the setup or already reaches the Doom payoff on time."
+        }
+      ],
+      "functional_examples": [
+        {
+          "cards": [
+            "NEGATIVE_PULSE",
+            "SHROUD"
+          ],
+          "role": "Mitigation or Block from a Doom package when its trigger is present"
+        },
+        {
+          "cards": [
+            "PULL_AGGRO",
+            "SPUR"
+          ],
+          "role": "Keep Osty alive or recover it without giving up immediate defense"
+        },
+        {
+          "cards": [
+            "REAVE",
+            "SEVERANCE"
+          ],
+          "role": "Soul supply while adding damage that can bridge the next fight"
+        }
+      ],
+      "build_directions": [
+        {
+          "name": "Act 1 defense and draw",
+          "seek": "Seek immediate Block or Weak, Souls that can be reached, and one usable damage source."
+        },
+        {
+          "name": "Souls and energy",
+          "anchors": [
+            "GRAVE_WARDEN",
+            "CAPTURE_SPIRIT",
+            "DIRGE",
+            "SEANCE",
+            "HAUNT"
+          ],
+          "seek": "Find repeatable Soul access, usable energy and one payoff. Verify costs instead of assuming an infinite."
+        },
+        {
+          "name": "Ethereal",
+          "anchors": [
+            "SCULPTING_STRIKE",
+            "VEILPIERCER",
+            "PAGESTORM",
+            "SPIRIT_OF_ASH"
+          ],
+          "seek": "Seek effective temporary cards, hand access and the right cost enablers before narrow scaling."
+        },
+        {
+          "name": "Doom defense",
+          "anchors": [
+            "SCOURGE",
+            "DEATHBRINGER",
+            "DEATHS_DOOR",
+            "OBLIVION",
+            "END_OF_DAYS"
+          ],
+          "seek": "Find Block or Weak for the enemy turn, and only enough timely Doom for the likely fights."
+        },
+        {
+          "name": "Osty and Hang",
+          "anchors": [
+            "DIRGE",
+            "INVOKE",
+            "FLATTEN",
+            "HANG"
+          ],
+          "seek": "Maintain Osty if it contributes, or cycle a compact Hang deck. Avoid diluting either with unrelated finishers."
+        }
+      ]
+    },
+    "FOOL": {
+      "source": "fool",
+      "named": [
+        {
+          "cards": [
+            "QUICK_SHOT",
+            "WAH_HAMMER"
+          ],
+          "priority": "high",
+          "when": "Efficient early damage. Count Arrow access and whether a target will actually be Impaled for Hammer."
+        },
+        {
+          "cards": [
+            "KI_HOP"
+          ],
+          "priority": "conditional",
+          "when": "Worth more when you can reliably Impale before playing it. Compare independent draw if that setup is missing."
+        },
+        {
+          "cards": [
+            "ARROW_STAB",
+            "LOCKED_IN",
+            "WREST",
+            "RECALL"
+          ],
+          "priority": "conditional",
+          "when": "Keep the loop compact. Wrest dislodges; Arrow Stab gets Shoot from discard; Locked In gets it from draw; Recall sets the top card."
+        },
+        {
+          "cards": [
+            "DIVINE_SHOT"
+          ],
+          "priority": "high",
+          "when": "A strong burst when Arrows and retrieval let the deck fire repeatedly. Check actual cost and target defenses."
+        },
+        {
+          "cards": [
+            "MELODIC_SHOT",
+            "MOTIF",
+            "LULLABY",
+            "WAH_CHO_KI"
+          ],
+          "priority": "conditional",
+          "when": "Compare cheap Shot burst, draw and Block against actual Melody frequency and hand space."
+        },
+        {
+          "cards": [
+            "WAH_BLAST",
+            "CHO_FIRM",
+            "JEST",
+            "BOUNCE",
+            "HIDDEN_ROOTS"
+          ],
+          "priority": "conditional",
+          "when": "Fill area damage or practical defense. Check active Melody, Arrow status and capacity for generated cards."
+        },
+        {
+          "cards": [
+            "ENCORE"
+          ],
+          "priority": "conditional",
+          "when": "Compare burst draw and energy only if the remaining play cap can fit the intended actions."
+        },
+        {
+          "cards": [
+            "QUIETUS",
+            "DISLIKE_YOU"
+          ],
+          "priority": "conditional",
+          "when": "Choose for meaningful Shot burst. Quietus destroys the Arrow; value Dislike You only for Shots this turn."
+        },
+        {
+          "cards": [
+            "WAH_TOUCH"
+          ],
+          "priority": "usually_skip",
+          "when": "Take if Vulnerable fixes a specific damage threshold or helps a wider deck plan. Skip if the current cycling already kills."
+        }
+      ],
+      "functional_examples": [
+        {
+          "cards": [
+            "NOCK",
+            "ARCHERY"
+          ],
+          "role": "Arrow supply when the deck can retrieve and fire the same shot repeatedly"
+        },
+        {
+          "cards": [
+            "WAH_CHO",
+            "CHO_KI",
+            "HARMONIC_SHIELD"
+          ],
+          "role": "Melody density and immediate Block or Stretch for a sustainable setup"
+        },
+        {
+          "cards": [
+            "VITRIOL",
+            "RUMMAGE"
+          ],
+          "role": "Cheap mitigation or draw when Sadness hand pressure is tolerable"
+        },
+        {
+          "cards": [
+            "ALL_IS_WELL",
+            "PUNCH_OF_JOY",
+            "GROWTH"
+          ],
+          "role": "Sadness payoffs or cleanup when creation is already reliable"
+        }
+      ],
+      "build_directions": [
+        {
+          "name": "Early survival",
+          "seek": "Seek damage that works now, keep a reliable Block option, and skip Vulnerable-only picks that miss the next fight's needs."
+        },
+        {
+          "name": "Arrow shot loop",
+          "anchors": [
+            "QUICK_SHOT",
+            "DIVINE_SHOT",
+            "KI_HOP",
+            "ARROW_STAB",
+            "WREST",
+            "LOCKED_IN",
+            "MELODIC_SHOT"
+          ],
+          "seek": "Seek Arrow supply, dislodge and targeted retrieval; use real Impaled timing and separate draw and discard access."
+        },
+        {
+          "name": "Melody support",
+          "anchors": [
+            "MOTIF",
+            "LULLABY",
+            "HARMONIC_SHIELD",
+            "MELODIC_SHOT",
+            "WAH_CHO_KI"
+          ],
+          "seek": "Find different Melodies, cheap triggers and useful block or draw. Avoid activating slow Powers into immediate danger."
+        },
+        {
+          "name": "Sadness and Joy",
+          "anchors": [
+            "ALL_IS_WELL",
+            "JEST",
+            "VITRIOL",
+            "RUMMAGE",
+            "PUNCH_OF_JOY",
+            "GROWTH",
+            "ECSTASY"
+          ],
+          "seek": "Ensure a reliable creation and payoff or cleanup loop. Count Sadness, Joy and draw together against the 10-card cap."
+        }
+      ]
+    },
+    "REGENT": {
+      "source": "regent",
+      "named": [
+        {
+          "cards": [
+            "GLOW",
+            "HIDDEN_CACHE"
+          ],
+          "priority": "high",
+          "when": "Fund Star spenders. Glow also cycles cards. Budget Hidden Cache's next-turn Stars separately."
+        },
+        {
+          "cards": [
+            "COLLISION_COURSE",
+            "KNOW_THY_PLACE",
+            "PHOTON_CUT"
+          ],
+          "priority": "high",
+          "when": "Efficient opening attack, debuff support or damage with draw. Match the current gap and compare Photon Cut upgrades."
+        },
+        {
+          "cards": [
+            "GAMMA_BLAST"
+          ],
+          "priority": "high",
+          "when": "Reliable Stars fund early single-target damage, Weak and Vulnerable together."
+        },
+        {
+          "cards": [
+            "REFLECT"
+          ],
+          "priority": "high",
+          "when": "Fund it with Stars and fight enemies whose attack damage you can block and reflect."
+        },
+        {
+          "cards": [
+            "ALIGNMENT"
+          ],
+          "priority": "high",
+          "when": "A dependable Star supply makes this an energy engine. Check the current cost and draw cycle before planning a loop."
+        },
+        {
+          "cards": [
+            "SHINING_STRIKE"
+          ],
+          "priority": "bridge",
+          "when": "Good early or when Stars are scarce. Its return to the draw pile costs future draws once Star production is sufficient."
+        },
+        {
+          "cards": [
+            "GATHER_LIGHT",
+            "SOLAR_STRIKE"
+          ],
+          "priority": "bridge",
+          "when": "Early Block or damage with Stars. Later, take only if it still addresses a shortage."
+        },
+        {
+          "cards": [
+            "PATTER",
+            "MANIFEST_AUTHORITY"
+          ],
+          "priority": "bridge",
+          "when": "Early Block can bridge weak defenses. Patter's Vigor likes multi-hit attacks. Manifest Authority supports card creation."
+        },
+        {
+          "cards": [
+            "CELESTIAL_MIGHT",
+            "WROUGHT_IN_WAR"
+          ],
+          "priority": "bridge",
+          "when": "Take for immediate damage if needed. Wrought in War also supports Forge. Consider the upgrade and future deck space."
+        },
+        {
+          "cards": [
+            "PARTICLE_WALL",
+            "CLOAK_OF_STARS"
+          ],
+          "priority": "conditional",
+          "when": "Good Block if the deck can fund it. Balance Star spending against the damage plan."
+        },
+        {
+          "cards": [
+            "QUASAR"
+          ],
+          "priority": "conditional",
+          "when": "An early upgraded utility pick or a card-creation option. Price its Stars and generated card uncertainty."
+        },
+        {
+          "cards": [
+            "ORBIT",
+            "DECISIONS_DECISIONS"
+          ],
+          "priority": "conditional",
+          "when": "Fuel a deck with enough draw and repeated energy use. Apply the live card text and activation costs."
+        },
+        {
+          "cards": [
+            "PALE_BLUE_DOT"
+          ],
+          "priority": "conditional",
+          "when": "Use it when the deck regularly reaches its card-play threshold and can put next-turn draw to work."
+        },
+        {
+          "cards": [
+            "RADIATE",
+            "BLACK_HOLE"
+          ],
+          "priority": "conditional",
+          "when": "Radiate likes Stars gained in the same turn. Black Hole earns its setup when Star gains and spends repeat."
+        },
+        {
+          "cards": [
+            "STARDUST",
+            "HEAVENLY_DRILL",
+            "SEVEN_STARS",
+            "LUNAR_BLAST"
+          ],
+          "priority": "conditional",
+          "when": "Match a multi-hit finisher to its actual Star, energy or Skill prerequisites. Fill defense and draw first if setup is too slow."
+        },
+        {
+          "cards": [
+            "BULWARK",
+            "THE_SMITH",
+            "CONQUEROR"
+          ],
+          "priority": "conditional",
+          "when": "Support a Forge plan with Block, repeatable Forge, or a blade payoff. Check how soon Sovereign Blade can finish."
+        },
+        {
+          "cards": [
+            "CHILD_OF_THE_STARS"
+          ],
+          "priority": "conditional",
+          "when": "Reward repeatable Star spending when it can help cover incoming attacks."
+        },
+        {
+          "cards": [
+            "ARSENAL"
+          ],
+          "priority": "conditional",
+          "when": "Build around it when the deck can reliably create and play cards during a fight."
+        },
+        {
+          "cards": [
+            "VOID_FORM"
+          ],
+          "priority": "conditional",
+          "when": "Useful with valuable expensive plays and enough draw. Plan for its turn-ending setup."
+        },
+        {
+          "cards": [
+            "DYING_STAR",
+            "BIG_BANG",
+            "TYRANNY"
+          ],
+          "priority": "high",
+          "when": "Strong rare options for immediate mitigation or long-term resources and deck flow. Compare their setup time and real cost."
+        },
+        {
+          "cards": [
+            "COMET"
+          ],
+          "priority": "conditional",
+          "when": "Pick when the deck can consistently pay its Star cost and needs single-target burst and debuffs."
+        },
+        {
+          "cards": [
+            "BEAT_INTO_SHAPE",
+            "CRASH_LANDING",
+            "BOMBARDMENT"
+          ],
+          "priority": "bridge",
+          "when": "Consider for immediate damage or a clear synergy. Account for generated Debris, attack setup and delayed damage."
+        },
+        {
+          "cards": [
+            "MONARCHS_GAZE",
+            "PARRY",
+            "ROYALTIES"
+          ],
+          "priority": "usually_skip",
+          "when": "Prefer immediate survival while developing. Take when the current deck can pay the setup cost and use the recurring payoff."
+        }
+      ],
+      "functional_examples": [
+        {
+          "cards": [
+            "REFINE_BLADE"
+          ],
+          "role": "Forge and next-turn energy"
+        },
+        {
+          "cards": [
+            "GLIMMER"
+          ],
+          "role": "Draw and set up the next hand"
+        },
+        {
+          "cards": [
+            "ROYAL_GAMBLE",
+            "GENESIS"
+          ],
+          "role": "Star supply within the live card's timing and cost"
+        },
+        {
+          "cards": [
+            "METEOR_SHOWER"
+          ],
+          "role": "Immediate area damage with Weak and Vulnerable when offered"
+        }
+      ],
+      "build_directions": [
+        {
+          "name": "Early transition",
+          "seek": "Look for efficient attack damage, Weak or Block, and cards that also draw or generate Stars. Fill the next fights' gaps before committing to a finisher."
+        },
+        {
+          "name": "Star to energy and burst",
+          "seek": "Once Star gain and drawing are reliable, look for energy refunds, cheap cycling and a funded multi-hit payoff. Check Vulnerable and the true energy and Star budget."
+        },
+        {
+          "name": "Defend and Forge",
+          "seek": "With reliable defense, look for repeatable Forge, Block that also forges, and draw that finds the blade. Let Sovereign Blade scale for long fights."
+        },
+        {
+          "name": "Card creation",
+          "anchors": [
+            "ARSENAL"
+          ],
+          "seek": "Find affordable repeatable creation to turn Arsenal into Strength while maintaining Block."
+        },
+        {
+          "name": "Void Form",
+          "anchors": [
+            "VOID_FORM"
+          ],
+          "seek": "Look for strong expensive plays and draw after securing a safe turn to set up Void Form."
+        }
+      ]
+    }
+  },
+  "archetypes": {
+    "IRONCLAD": {
+      "Exhaust": {
+        "enablers": ["BRAND", "BURNING_PACT", "CINDER", "CORRUPTION", "HAVOC", "SECOND_WIND", "STOKE", "TRUE_GRIT"],
+        "payoffs": ["ASHEN_STRIKE", "DARK_EMBRACE", "EVIL_EYE", "FEEL_NO_PAIN", "FIEND_FIRE", "HOWL_FROM_BEYOND", "MIDNIGHT", "PACTS_END"]
+      },
+      "Strength": {
+        "enablers": ["BRAND", "DEMON_FORM", "DOMINATE", "FIGHT_ME", "INFLAME", "VETERAN"],
+        "payoffs": ["CONFLAGRATION", "EXPECT_A_FIGHT", "SWORD_BOOMERANG", "TWIN_STRIKE", "WHIRLWIND"]
+      },
+      "Self-damage": {
+        "enablers": ["BLOOD_WALL", "BLOODLETTING", "BRAND", "BREAKTHROUGH", "CRIMSON_MANTLE", "HEMOKINESIS", "OFFERING"],
+        "payoffs": ["INFERNO", "RUPTURE", "SPITE", "TEAR_ASUNDER"]
+      },
+      "Vulnerable": {
+        "enablers": ["BREAK", "DOMINATE", "TAUNT", "THUNDERCLAP", "TREMBLE", "UPPERCUT"],
+        "payoffs": ["BULLY", "COLOSSUS", "CRUELTY", "DISMANTLE", "MOLTEN_FIST", "VICIOUS"]
+      }
+    },
+    "SILENT": {
+      "Shivs": {
+        "enablers": ["BLADE_DANCE", "BLADE_OF_INK", "CLOAK_AND_DAGGER", "FAN_OF_KNIVES", "HIDDEN_DAGGERS", "INFINITE_BLADES", "LEADING_STRIKE", "STORM_OF_STEEL", "UP_MY_SLEEVE"],
+        "payoffs": ["ACCURACY", "FAN_OF_KNIVES", "KNIFE_TRAP", "PHANTOM_BLADES", "SHARP_EDGE"]
+      },
+      "Poison": {
+        "enablers": ["BOUNCING_FLASK", "CORROSIVE_WAVE", "DEADLY_POISON", "ENVENOM", "HAZE", "NOXIOUS_FUMES", "POISONED_STAB", "SNAKEBITE"],
+        "payoffs": ["ACCELERANT", "BUBBLE_BUBBLE", "MIRAGE", "OUTBREAK"]
+      },
+      "Discard": {
+        "enablers": ["ACROBATICS", "CALCULATED_GAMBLE", "DAGGER_THROW", "HIDDEN_DAGGERS", "PREPARED", "STORM_OF_STEEL", "TOOLS_OF_THE_TRADE"],
+        "payoffs": ["MEMENTO_MORI", "REFLEX", "TACTICIAN", "UNTOUCHABLE"]
+      }
+    },
+    "DEFECT": {
+      "Lightning Orbs": {
+        "enablers": ["BALL_LIGHTNING", "LIGHTNING_ROD", "TEMPEST"],
+        "payoffs": ["TESLA_COIL", "THUNDER", "VOLTAIC"]
+      },
+      "Frost scaling": {
+        "enablers": ["COLD_SNAP", "COOLHEADED", "CHILL", "GLACIER", "ICE_LANCE"],
+        "payoffs": ["DEFRAGMENT", "BIASED_COGNITION", "CAPACITOR", "LOOP"]
+      },
+      "Status cards": {
+        "enablers": ["BOOST_AWAY", "FIGHT_THROUGH", "GUNK_UP", "OVERCLOCK", "TURBO"],
+        "payoffs": ["COMPACT", "ITERATION", "FLAK_CANNON", "SMOKESTACK", "ROCKET_PUNCH", "TRASH_TO_TREASURE"]
+      },
+      "Zero-cost replay": {
+        "enablers": ["ADAPTIVE_STRIKE", "BEAM_CELL", "GO_FOR_THE_EYES"],
+        "payoffs": ["ALL_FOR_ONE", "FERAL", "SCRAPE"]
+      }
+    },
+    "REGENT": {
+      "Stars": {
+        "enablers": ["GENESIS", "GLOW", "HIDDEN_CACHE", "SHINING_STRIKE", "GATHER_LIGHT", "CONVERGENCE"],
+        "payoffs": ["RADIATE", "CHILD_OF_THE_STARS", "SEVEN_STARS", "REFLECT", "PARTICLE_WALL", "GAMMA_BLAST"]
+      },
+      "Forge": {
+        "enablers": ["FURNACE", "WROUGHT_IN_WAR", "BULWARK", "REFINE_BLADE", "SPOILS_OF_BATTLE", "BEAT_INTO_SHAPE"],
+        "payoffs": ["SUMMON_FORTH", "SEEKING_EDGE", "CONQUEROR"]
+      },
+      "Card creation": {
+        "enablers": ["QUASAR", "MANIFEST_AUTHORITY", "BUNDLE_OF_JOY", "SPECTRUM_SHIFT"],
+        "payoffs": ["ARSENAL", "PILLAR_OF_CREATION"]
+      }
+    },
+    "NECROBINDER": {
+      "Souls": {
+        "enablers": ["CAPTURE_SPIRIT", "GRAVE_WARDEN", "DIRGE", "REAVE", "SEANCE", "SEVERANCE"],
+        "payoffs": ["HAUNT", "SOUL_STORM", "DEVOUR_LIFE"]
+      },
+      "Doom": {
+        "enablers": ["SCOURGE", "DEATHBRINGER", "NEGATIVE_PULSE", "COUNTDOWN", "BLIGHT_STRIKE", "OBLIVION", "REAPER_FORM"],
+        "payoffs": ["DEATHS_DOOR", "TIMES_UP", "NO_ESCAPE", "SHROUD", "END_OF_DAYS"]
+      },
+      "Osty": {
+        "enablers": ["AFTERLIFE", "CLEANSE", "DIRGE", "INVOKE", "PULL_AGGRO", "REANIMATE", "SPUR", "SIC_EM", "FETCH"],
+        "payoffs": ["CALCIFY", "FLATTEN", "PROTECTOR", "RATTLE", "SQUEEZE", "NECRO_MASTERY", "BONE_SHARDS", "SACRIFICE"]
+      },
+      "Ethereal": {
+        "enablers": ["CALL_OF_THE_VOID", "SCULPTING_STRIKE", "DEFY", "DEMESNE"],
+        "payoffs": ["PAGESTORM", "SPIRIT_OF_ASH", "PULL_FROM_BELOW", "BANSHEES_CRY", "VEILPIERCER", "EIDOLON"]
+      }
+    },
+    "FOOL": {
+      "Arrow Shots": {
+        "enablers": ["ARCHERY", "NOCK", "HONING", "DISLIKE_YOU", "LOCKED_IN", "QUIVER", "BLOT_OUT_THE_SKY", "QUIETUS"],
+        "payoffs": ["HEAVY_SHOT", "DIVINE_SHOT", "RAPID_SHOT", "REPEAT_SHOT", "RAIN_SHOT", "HOBBLING_SHOT", "BLOSSOM_SHOT", "TRICK_SHOT"]
+      },
+      "Melody": {
+        "enablers": ["WAH_CHO_KI", "WAH_CHO", "WAH_KI", "CHO_KI", "KI_VERSE", "CHO_CHORUS"],
+        "payoffs": ["MOTIF", "LOST_LUTE", "LULLABY", "HARMONIC_SHIELD", "CODA", "SONG_PATH", "VIOLENT_CHORD", "RHYTHM_STRIKE", "STEADY_CADENCE", "MELODIC_SHOT"]
+      },
+      "Sadness and Joy": {
+        "enablers": ["BRIGHTEN_UP", "ENNUI", "JEST", "RUMMAGE", "SORROWFUL_STRIKE", "VITRIOL"],
+        "payoffs": ["ALL_IS_WELL", "ANGUISH", "GROWTH", "ECSTASY", "PUNCH_OF_JOY"]
+      }
+    }
+  },
+  "profiles": {
+    "IRONCLAD": {
+      "source": "ironclad",
+      "rules": [
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards"
+          ],
+          "through_act": 1,
+          "tip": "Buy or pick what gets the deck through the next fights. Early damage, low-cost Block and draw can beat a slower engine piece. Compare cards like Pommel Strike, Shrug It Off, Iron Wave and Flame Barrier against the actual gap."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards"
+          ],
+          "tip": "Take a payoff only when its setup is already repeatable. Check energy, hand flow and how often the payoff will be drawn with its enablers. Skip redundant attacks or speculative payoffs in a functioning deck."
+        },
+        {
+          "screens": [
+            "combat"
+          ],
+          "seen_any": [
+            "FEED"
+          ],
+          "tip": "Evaluate Feed as a finisher. If it can safely land the killing blow, count the maximum HP gain. Take the confirmed kill now if waiting would expose you to a dangerous extra turn."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "deck_any": [
+            "BURNING_PACT",
+            "FEEL_NO_PAIN",
+            "EVIL_EYE",
+            "PACTS_END",
+            "CORRUPTION",
+            "FIEND_FIRE"
+          ],
+          "tip": "An exhaust package needs dependable exhaust and a payoff. Check which card would be removed, how much Block or draw it produces now, and whether the deck still has a finisher after thinning."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "HELLRAISER",
+            "STOMP",
+            "OFFERING",
+            "RUPTURE",
+            "UNRELENTING"
+          ],
+          "tip": "Check the actual trigger density of attack payoffs. Hellraiser needs Strike cards, while a card rewarding several attacks needs enough cheap attacks in one turn. Measure self-damage and whether the added draw or energy can be used now."
+        }
+      ]
+    },
+    "SILENT": {
+      "source": "silent",
+      "rules": [
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "map",
+            "rest"
+          ],
+          "tip": "Before the engine is reliable, stabilize with affordable damage and defense, and favor a route with manageable fights and available recovery. Once damage scales, reward draw and hand consistency over a second unrelated damage engine."
+        },
+        {
+          "screens": [
+            "event",
+            "card_selection",
+            "rest",
+            "card_reward",
+            "shop"
+          ],
+          "archetype_enablers": "Shivs",
+          "min_deck_matches": 2,
+          "tip": "This deck already has multiple ways to produce Shivs. Leading Strike supplies Shivs but its own damage is separate. A damage-only enchantment on a generator changes only the generator's own attack. Compare the actual preview and HP cost. Accuracy adds damage to the Shivs themselves, Sharp Edge upgrades newly made Shivs, and Fan of Knives gives them area damage. Compare adding more generators against the actual need for those payoffs, draw, and defense."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "deck_any": [
+            "SERPENT_FORM"
+          ],
+          "tip": "Serpent Form rewards a high number of cheap plays. Activate it before expendable Shivs when the threat budget allows it. Keep room for generated Shivs and allow for the Form's random targeting in multi-enemy fights."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "deck_any": [
+            "CORROSIVE_WAVE"
+          ],
+          "tip": "With Corrosive Wave, compare applying it before your main draw sequence. Draw, energy and discard cycling can improve both Poison and access to defense. Accelerant is valuable once there is meaningful Poison to trigger."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards"
+          ],
+          "seen_any": [
+            "SERPENT_FORM",
+            "CORROSIVE_WAVE",
+            "ADRENALINE",
+            "CALCULATED_GAMBLE"
+          ],
+          "tip": "Evaluate Adrenaline and Calculated Gamble as consistency tools. An offered Serpent Form or Corrosive Wave can open an engine, and support picks depend on how reliably the deck can activate it and survive setup."
+        },
+        {
+          "screens": [
+            "combat"
+          ],
+          "seen_any": [
+            "CALCULATED_GAMBLE",
+            "STORM_OF_STEEL"
+          ],
+          "tip": "Plan what will be lost before using a full-hand discard. Spend any important defense first if the replacement hand cannot be trusted, and keep enough room to draw or generate cards."
+        }
+      ]
+    },
+    "DEFECT": {
+      "source": "defect",
+      "rules": [
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards"
+          ],
+          "tip": "Use efficient attacks, area damage or Block to stabilize first. Focused Strike, Lightning Rod and Boost Away are examples to compare against the deck's immediate gaps. Check Spinner's setup time before using it to cover an urgent fight."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "deck_any": [
+            "DEFRAGMENT",
+            "DARKNESS",
+            "LIGHTNING_ROD",
+            "TESLA_COIL"
+          ],
+          "tip": "For orbs, plan channel and evoke order before replacing an orb. Keep Frost when you need defense. With Dark, estimate the time needed to grow and evoke the payoff. With focused Lightning effects, target the enemy you need to remove."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "deck_any": [
+            "HOLOGRAM",
+            "ALL_FOR_ONE",
+            "ADAPTIVE_STRIKE"
+          ],
+          "tip": "A cheap-card loop needs more than its payoff. Confirm the discard targets for Hologram or All for One, energy and draw to replay them, and immediate defense when the loop is incomplete."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "OVERCLOCK",
+            "COMPACT",
+            "ITERATION"
+          ],
+          "tip": "Check actual Status density and timing before taking Status payoffs. Overclock can fix a draw problem, and Compact or Iteration become stronger only when their visible triggers occur often enough."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "SIGNAL_BOOST",
+            "CREATIVE_AI",
+            "BIASED_COGNITION"
+          ],
+          "tip": "Set up a copied Power only when the next Power and its energy cost are available. Compare a slow scaling Power with what the current turn needs to prevent damage."
+        }
+      ]
+    },
+    "REGENT": {
+      "source": "regent",
+      "rules": [
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards"
+          ],
+          "tip": "Start with damage and defense you can use immediately. Build a dependable mix of Star generation, draw, manageable spenders and a finisher. A strong Star spender is less valuable when the deck cannot fund it regularly."
+        },
+        {
+          "screens": [
+            "combat"
+          ],
+          "tip": "Track energy and Stars separately. Count Stars already banked, Stars gained this turn and what block may require. Compare an efficient kill now with saving Stars for a better payoff next turn."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "GLOW",
+            "HIDDEN_CACHE",
+            "GENESIS",
+            "ALIGNMENT",
+            "REFLECT",
+            "PARTICLE_WALL"
+          ],
+          "tip": "Use Glow or other funded draw and generation to make spenders consistent. Hidden Cache has a delayed component. Count only the resources available before the chosen attack or defensive play."
+        },
+        {
+          "screens": [
+            "combat"
+          ],
+          "deck_any": [
+            "RADIATE",
+            "SEVEN_STARS",
+            "CELESTIAL_MIGHT",
+            "HEAVENLY_DRILL"
+          ],
+          "tip": "Before Radiate, compare gaining more Stars this turn with playing it now. Before a multi-hit finisher, check Vulnerable and lethal by target, including how many resources will remain for defense."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "ARSENAL",
+            "VOID_FORM",
+            "WROUGHT_IN_WAR"
+          ],
+          "tip": "When reliable defense already buys time, repeated Forge can provide the finisher. Treat card-creation and expensive-card branches as options when Arsenal or Void Form and their support actually exist. Check Void Form's immediate turn-ending effect."
+        }
+      ]
+    },
+    "NECROBINDER": {
+      "source": "necrobinder",
+      "rules": [
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "map",
+            "rest"
+          ],
+          "tip": "Stabilize with efficient defense and enough immediate value before elites. Keep the deck compact. Use Souls, dependable draw and energy to reach a finisher rather than adding several slow damage payoffs."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "deck_any": [
+            "CAPTURE_SPIRIT",
+            "GRAVE_WARDEN",
+            "BORROWED_TIME",
+            "INVOKE",
+            "DIRGE"
+          ],
+          "tip": "Keep the Soul engine accessible. Draw and Block can fit together through Grave Warden. Check whether the next Soul, reusable energy card or finisher is actually accessible this turn before expecting a repeatable loop."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "SCOURGE",
+            "DEATHS_DOOR",
+            "DEATHBRINGER",
+            "NO_ESCAPE",
+            "OBLIVION",
+            "END_OF_DAYS"
+          ],
+          "tip": "Treat Doom as delayed damage. Unless a live action resolves the kill immediately, defend against the enemy's action before Doom settles. Apply Doom first when the order unlocks an immediate defensive payoff such as Death's Door."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "VEILPIERCER",
+            "SCULPTING_STRIKE",
+            "PAGESTORM",
+            "SPIRIT_OF_ASH",
+            "PULL_FROM_BELOW"
+          ],
+          "tip": "Use efficient Ethereal cards to bridge early fights and count the loss of an unplayed Ethereal card at end of turn. Only add narrow Ethereal payoffs once the deck will trigger them. Check the order of Sculpting Strike and Veilpiercer."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "DIRGE",
+            "INVOKE",
+            "FLATTEN",
+            "UNLEASH"
+          ],
+          "tip": "Osty can bridge defense and damage if you can preserve or rebuild its HP. Compare Summon with immediate Block. Check whether Osty already attacked before relying on Flatten's discounted cost."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "deck_any": [
+            "HANG"
+          ],
+          "tip": "Once Hang is a real finisher, improve access to it through draw and a compact deck. Repeat it on the same priority target and check Intangible or other visible defenses before assuming a kill."
+        }
+      ]
+    },
+    "FOOL": {
+      "source": "fool",
+      "rules": [
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "map",
+            "rest"
+          ],
+          "tip": "Build only after the offers support it. Take enough immediate damage and defense to leave Act 1 safely. If rewards justify early normal fights, keep a path to a rest or an elite bypass if the deck comes together slowly."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "QUICK_SHOT",
+            "KI_HOP",
+            "WAH_HAMMER"
+          ],
+          "tip": "With Quick Shot, plan how to establish Impaled and then use the conditional follow-up. Compare Ki Hop or Wah Hammer with an independent card before buying more Impaled payoffs."
+        },
+        {
+          "screens": [
+            "combat"
+          ],
+          "seen_any": [
+            "WREST",
+            "ARROW_STAB",
+            "LOCKED_IN",
+            "RECALL"
+          ],
+          "tip": "Treat loose Arrows, Impaled targets and the Shoot card's location as separate state. When useful, take the Impaled payoff first, then dislodge with Wrest. Arrow Stab recovers from discard, while Locked In retrieves from the draw pile."
+        },
+        {
+          "screens": [
+            "card_reward",
+            "shop",
+            "rewards",
+            "combat"
+          ],
+          "seen_any": [
+            "DIVINE_SHOT",
+            "MELODIC_SHOT",
+            "ARROW_STAB",
+            "LOCKED_IN"
+          ],
+          "tip": "Consider a compact draw and retrieval loop around a Shot that the current deck can find repeatedly. Divine Shot and an upgraded Melodic Shot were possible payoffs in this run. Avoid adding default Vulnerable or high-cost cards that do not solve a fight or maintain the loop."
+        },
+        {
+          "screens": [
+            "combat"
+          ],
+          "seen_any": [
+            "MOTIF",
+            "LULLABY",
+            "ENCORE",
+            "PERFECT_FIT"
+          ],
+          "tip": "Check hand space and exact Melody triggers before playing Motif or Lullaby. Use Encore only after planning around its play limit. Distinguish shuffling a card to the top from having an Innate card."
+        }
+      ]
+    }
+  }
+}

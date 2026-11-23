@@ -7,6 +7,7 @@ import json
 import re
 import struct
 
+from inventory_catalog import PACK_LOCALES, PACK_LOCALE_CODES
 from wiki_card_icons import COLORS as CARD_COLORS, POOL_COLORS, cached_badge, card_variant
 
 MAP_ASSETS = {
@@ -17,6 +18,7 @@ MAP_ATLAS = "images/atlases/ui_atlas.sprites/map/"
 CARD_ATLAS = "images/atlases/ui_atlas.sprites/card/"
 PORTRAIT_ATLAS = "images/atlases/card_atlas.sprites/"
 CARD_PORTRAITS = "images/packed/card_portraits/"
+POTION_ATLAS = "images/atlases/potion_atlas.sprites/"
 TOP_BAR = "images/atlases/ui_atlas.sprites/top_bar/"
 RESOURCE_PATHS = {"hp": "heart", "gold": "gold", "deck": "deck", "floor": "floor"}
 CHARACTER_TABLE = "localization/eng/characters.json"
@@ -24,10 +26,21 @@ REGION = re.compile(rb"\bregion\s*=\s*Rect2\(\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)
 ATLAS_PATH = re.compile(rb'\bpath="res://([^\"]+\.png)"')
 TEXTURE_PATH = re.compile(rb'(?m)^path(?:\.(?:bptc|s3tc))?="res://([^\"]+\.ctex)"')
 PACK_ERRORS = (OSError, ValueError, struct.error)
+MAX_CARD_RENDER_BYTES = 8_000_000
+MAX_CARD_RENDER_DIMENSION = 4096
 
 
 def card_entry(identifier):
-    return re.sub(r"^CARD[. :_-]+", "", identifier, flags=re.IGNORECASE).casefold()
+    if not isinstance(identifier, str):
+        return ""
+    return re.sub(r"^CARD[. :_-]+", "", identifier.strip(), flags=re.IGNORECASE).casefold()
+
+
+def card_pool(pool):
+    if not isinstance(pool, str):
+        return ""
+    pool = re.sub(r"^CARD[_ -]?POOL[. :_-]+", "", pool.strip(), flags=re.IGNORECASE)
+    return pool.casefold().replace("_", "").removesuffix("cardpool")
 
 
 def texture_image(data):
@@ -70,6 +83,7 @@ class GameArt:
         self.character_table = None
         self.portrait_pools = {}
         self.wiki_card_dir = root / "STS2 Cache" / "wiki-cards"
+        self.card_render_dir = root / "STS2 Cache" / "card-renders"
 
     def refresh(self):
         pack = self.find_pack(self.root)
@@ -145,11 +159,14 @@ class GameArt:
 
         if not self.version:
             return None
+        name = character.casefold()
         if not portrait:
-            prefix = f".godot/imported/character_icon_{character.casefold()}.png-"
+            prefix = f".godot/imported/character_icon_{name}.png-"
             entry = next((name for name in self.index if name.startswith(prefix) and name.endswith(".ctex")), None)
             if entry and (icon := self.textures(entry)):
                 return icon
+        if image := self.imported(f"images/packed/character_select/char_select_{name}.png"):
+            return image
         data = self.read_portrait(self.version[0], character)
         if data:
             with Image.open(BytesIO(data)) as image:
@@ -160,7 +177,10 @@ class GameArt:
         return self.photo(("room", room, detail, size), lambda: self.read_room(room, detail), size)
 
     def card_variant(self, identifier, pool, rarity, kind):
-        return card_variant(pool or self.portrait_pools.get(card_entry(identifier), ""), rarity, kind)
+        pool = card_pool(pool)
+        if pool not in POOL_COLORS:
+            pool = self.portrait_pools.get(card_entry(identifier), pool)
+        return card_variant(pool, rarity, kind)
 
     def card_icon(self, identifier, variant, size):
         wiki_file = cached_badge(self.wiki_card_dir, variant)
@@ -168,22 +188,132 @@ class GameArt:
             icon = self.photo(("wiki-card", variant, size, wiki_file), lambda: self.read_image(wiki_file), size, local=True)
             if icon:
                 return icon
-        entry = card_entry(identifier)
-        pool = self.portrait_pools.get(entry)
-        if pool:
-            if POOL_COLORS.get(pool) != variant[0]:
-                pool = next((name for name, color in POOL_COLORS.items()
-                             if color == variant[0] and f"{PORTRAIT_ATLAS}{name}/{entry}.tres" in self.index), pool)
-            icon = self.photo(("steam-card", entry, pool, variant, size),
-                              lambda: self.read_card_portrait(pool, entry, variant), size)
+        source = self.card_portrait_source(identifier, "", variant)
+        if source:
+            icon = self.photo(("steam-card", *source, variant, size),
+                              lambda: self.read_card_icon(source, variant), size)
             if icon:
                 return icon
         return self.photo(("card-badge", variant, size), lambda: self.card_badge(variant), size, local=True)
 
-    def read_card_portrait(self, pool, entry, variant):
-        portrait = (self.atlas_sprite(f"{PORTRAIT_ATLAS}{pool}/{entry}.tres")
-                    or self.imported(f"{CARD_PORTRAITS}{pool}/{entry}.png"))
+    def rendered_card(self, identifier, language, upgraded, size):
+        stem = self.rendered_card_stem(identifier, language, upgraded)
+        if stem is None:
+            return None
+        for extension in (".webp", ".png"):
+            path = stem.with_suffix(extension)
+            try:
+                metadata = path.stat()
+            except OSError:
+                continue
+            if not 0 < metadata.st_size <= MAX_CARD_RENDER_BYTES:
+                continue
+            cache_key = ("rendered-card", path, metadata.st_mtime_ns, metadata.st_size, size)
+            image = self.photo(cache_key, lambda: self.read_card_render(path), size, local=True)
+            if image:
+                return image
+        return None
+
+    def rendered_card_stem(self, identifier, language, upgraded):
+        entry = card_entry(identifier).removesuffix("+")
+        if not re.fullmatch(r"[a-z0-9_]{1,96}", entry) or not isinstance(language, str):
+            return None
+        code = language.strip().casefold().replace("_", "-")
+        locale = code if code in PACK_LOCALE_CODES else PACK_LOCALES.get(code)
+        if not locale:
+            return None
+        stem = entry + "_upg" if upgraded else entry
+        return self.card_render_dir / locale / stem
+
+    def rendered_card_metadata(self, identifier, language, upgraded):
+        stem = self.rendered_card_stem(identifier, language, upgraded)
+        if stem is None:
+            return {}
+        try:
+            with stem.with_suffix(".json").open("rb") as stream:
+                data = stream.read(12_001)
+            record = json.loads(data) if len(data) <= 12_000 else None
+        except (OSError, ValueError, RecursionError):
+            return {}
+        return record if isinstance(record, dict) else {}
+
+    @staticmethod
+    def read_card_render(path):
+        from PIL import Image
+
+        try:
+            with path.open("rb") as stream:
+                data = stream.read(MAX_CARD_RENDER_BYTES + 1)
+            if not 0 < len(data) <= MAX_CARD_RENDER_BYTES:
+                return None
+            with Image.open(BytesIO(data), formats=("WEBP", "PNG")) as image:
+                if 0 < image.width <= MAX_CARD_RENDER_DIMENSION and 0 < image.height <= MAX_CARD_RENDER_DIMENSION:
+                    rendered = image.convert("RGBA")
+                    bounds = rendered.getchannel("A").getbbox()
+                    return rendered.crop(bounds) if bounds else None
+        except (*PACK_ERRORS, Image.DecompressionBombError):
+            return None
+        return None
+
+    def card_portrait(self, identifier, pool, variant, size):
+        source = self.card_portrait_source(identifier, pool, variant)
+        if source:
+            return self.photo(("card-portrait", *source, size), lambda: self.read_card_portrait(*source), size)
+        return None
+
+    def card_frame(self, identifier, pool, variant, size):
+        source = self.card_portrait_source(identifier, pool, variant)
+        if source and variant:
+            return self.photo(("card-frame", *source, variant, size),
+                              lambda: self.read_card_frame(source, variant), size)
+        return None
+
+    def card_portrait_source(self, identifier, pool, variant):
+        entry = card_entry(identifier)
+        if not re.fullmatch(r"[a-z0-9_]+", entry):
+            return None
+        matching = (name for name, color in POOL_COLORS.items() if variant and color == variant[0])
+        candidates = (card_pool(pool), *matching, self.portrait_pools.get(entry))
+        for name in candidates:
+            if name and (f"{PORTRAIT_ATLAS}{name}/{entry}.tres" in self.index
+                         or f"{CARD_PORTRAITS}{name}/{entry}.png.import" in self.index):
+                return name, entry
+        return None
+
+    def read_card_portrait(self, pool, entry):
+        return (self.atlas_sprite(f"{PORTRAIT_ATLAS}{pool}/{entry}.tres")
+                or self.imported(f"{CARD_PORTRAITS}{pool}/{entry}.png"))
+
+    def read_card_icon(self, source, variant):
+        portrait = self.read_card_portrait(*source)
         return self.card_badge(variant, portrait) if portrait else None
+
+    def read_card_frame(self, source, variant):
+        from PIL import Image, ImageOps
+
+        color, rarity, kind = variant
+        frame_kind = "ancient" if rarity == "ancient" else kind
+        if frame_kind not in ("ancient", "attack", "power", "quest", "skill"):
+            frame_kind = "skill"
+        frame = self.atlas_sprite(f"{CARD_ATLAS}card_frame_{frame_kind}_s.tres")
+        portrait = self.read_card_portrait(*source)
+        if not frame or not portrait:
+            return None
+
+        # Keep the frame's lower text well clear for the launcher's own layout.
+        width, height = frame.size
+        if frame_kind not in ("ancient", "quest") and color in CARD_COLORS and color != "red":
+            alpha = frame.getchannel("A")
+            frame = ImageOps.colorize(frame.convert("L"), "#121715", "#F4EDE0", mid=CARD_COLORS[color])
+            frame.putalpha(alpha)
+        art_width = round(width * .86)
+        art_top = round(height * .10)
+        art_height = round(height * .58) - art_top
+        art = ImageOps.fit(portrait, (art_width, art_height), method=Image.Resampling.LANCZOS)
+        preview = Image.new("RGBA", frame.size)
+        preview.alpha_composite(art, ((width - art_width) // 2, art_top))
+        preview.alpha_composite(frame)
+        return preview
 
     @staticmethod
     def read_image(path):
@@ -236,10 +366,28 @@ class GameArt:
         return self.photo(("resource", name, character if name == "energy" else "", size), read, size)
 
     def relic_icon(self, identifier, size):
-        if not re.fullmatch(r"[a-zA-Z0-9_]+", identifier):
+        if not isinstance(identifier, str):
             return None
-        key = identifier.casefold()
+        key = re.sub(r"^RELIC[. :_-]+", "", identifier.strip(), flags=re.IGNORECASE).casefold()
+        if not re.fullmatch(r"[a-z0-9_]+", key):
+            return None
         return self.photo(("relic", key, size), lambda: self.imported(f"images/relics/{key}.png"), size)
+
+    def potion_icon(self, identifier, size):
+        if not isinstance(identifier, str):
+            return None
+        key = re.sub(r"^POTION[. :]+", "", identifier.strip(), flags=re.IGNORECASE).casefold()
+        if not re.fullmatch(r"[a-z0-9_]+", key):
+            return None
+
+        def read():
+            small = f"{POTION_ATLAS}{key}.tres"
+            large = f"images/potions/large/{key}.png"
+            if max(size) > 64:
+                return self.imported(large) or self.atlas_sprite(small)
+            return self.atlas_sprite(small) or self.imported(large)
+
+        return self.photo(("potion", key, size), read, size)
 
     def read_room(self, room, detail):
         if room in MAP_ASSETS:

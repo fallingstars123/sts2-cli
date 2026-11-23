@@ -37,6 +37,8 @@ from run_stats import completed_runs, estimated_wins, similar_runs, stage  # noq
 PROJECT = os.path.join(ROOT, "src", "Sts2Headless", "Sts2Headless.csproj")
 BUILD_DECISIONS = {"card_reward", "bundle_select", "shop", "event_choice", "rest_site", "card_select"}
 PLAN_FIELDS = ("direction", "priorities", "pivot")
+REQUEST_ATTEMPTS = 3
+REQUEST_TIMEOUT = 60.0
 
 SYSTEM_PROMPT = """You are an expert Slay the Spire 2 player playing a full run, aiming to beat the final boss.
 At every step you get the current game state and a numbered list of LEGAL actions.
@@ -368,11 +370,12 @@ class LLM:
         elif provider == "anthropic":
             import anthropic
             self.anthropic = anthropic
-            self.client = anthropic.Anthropic(base_url=base_url) if base_url else anthropic.Anthropic()
+            self.client = anthropic.Anthropic(base_url=base_url, timeout=REQUEST_TIMEOUT, max_retries=0)
             self.model = model or "claude-opus-5-5"
         else:
             import openai
-            self.client = openai.OpenAI(base_url=base_url or os.environ.get("OPENAI_BASE_URL"))
+            self.client = openai.OpenAI(base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+                                        timeout=REQUEST_TIMEOUT, max_retries=0)
             self.model = model or os.environ.get("OPENAI_MODEL") or "gpt-5"
 
     def ask(self, prompt):
@@ -407,10 +410,12 @@ class LLM:
         if r.usage:
             self.in_tok += r.usage.prompt_tokens or 0
             self.out_tok += r.usage.completion_tokens or 0
-        return r.choices[0].message.content or ""
+        return (r.choices[0].message.content or "") if r.choices else ""
 
 
 def parse_reply(text):
+    if not isinstance(text, str):
+        return None
     m = re.search(r"\{.*\}", text or "", re.S)
     if not m:
         return None
@@ -419,6 +424,50 @@ def parse_reply(text):
     except json.JSONDecodeError:
         nums = re.findall(r'"choice"\s*:\s*(\d+)', m.group(0))
         return {"choice": int(nums[0])} if nums else None
+
+
+def request_failure(error):
+    """Return a safe message and whether the provider might recover on retry."""
+    status = getattr(error, "status_code", None)
+    if status == 401:
+        return "The provider rejected the API key (HTTP 401).", False
+    if status == 403:
+        return "The provider denied access to the requested resource (HTTP 403).", False
+    if status == 404:
+        return "The provider could not find the requested model or endpoint (HTTP 404).", False
+    detail = " ".join(str(value) for value in (
+        getattr(error, "code", ""), getattr(error, "body", ""), error
+    )).casefold()
+    if status == 402 or any(term in detail for term in (
+        "insufficient_quota", "insufficient_balance", "billing_error", "billing_hard_limit_reached",
+        "insufficient balance", "credit balance is too low", "exceeded your current quota",
+        "exceeded your spend limit", "out of credits",
+    )):
+        return "The provider reports insufficient balance or quota.", False
+    if status in (400, 422) and any(term in detail for term in (
+        "model_not_found", "model does not exist", "model not found", "unknown model", "invalid model",
+    )):
+        return f"The provider could not use the requested model (HTTP {status}).", False
+    if status == 429:
+        return "The provider rate limit was reached (HTTP 429).", True
+    if type(status) is int and 400 <= status <= 599:
+        return f"The provider returned HTTP {status}.", status in (408, 409) or status >= 500
+    if isinstance(error, (TimeoutError, ConnectionError)) or any(
+        base.__name__ in ("APITimeoutError", "APIConnectionError") for base in type(error).__mro__
+    ):
+        return "The provider connection failed or timed out.", True
+    return "The provider client failed to complete the request.", False
+
+
+def fallback_action(state, options):
+    if options:
+        return options[0][1]
+    minimum = state.get("min_select", 1)
+    indices = list(dict.fromkeys(card["index"] for card in state.get("cards") or []
+                                if type(card.get("index")) is int))
+    if not 1 <= minimum <= len(indices):
+        raise SystemExit("Game action failed: the engine did not provide enough cards for the required selection.")
+    return act("select_cards", indices=",".join(map(str, indices[:minimum])))
 
 
 # --------------------------------------------------------------- game process
@@ -463,7 +512,12 @@ class Engine:
 # ------------------------------------------------------------------- main loop
 
 def play(args):
-    llm = LLM(args.provider, args.model, args.base_url, args.effort)
+    try:
+        llm = LLM(args.provider, args.model, args.base_url, args.effort)
+    except ImportError:
+        raise SystemExit("AI setup failed: the provider client is missing or could not be imported.") from None
+    except Exception:
+        raise SystemExit("AI setup failed: check the provider API key and client configuration.") from None
     seed = args.seed or f"llm_{int(time.time())}"
     print(f"Provider {args.provider}, model {llm.model}, {args.character}, A{args.ascension}, seed {seed}")
     logger = GameLogger(args.character, seed, enabled=True)
@@ -519,10 +573,11 @@ def play(args):
                     archived_acts.add(chapter)
             proposed_plan = None
             message = ""
+            multi_select = d == "card_select" and s.get("max_select", 1) > 1
             if not opts and d != "card_select":
                 cmd = act("proceed")
                 reason = "(auto)"
-            elif len(opts) == 1:
+            elif len(opts) == 1 and not multi_select:
                 cmd, reason = opts[0][1], "(only option)"
             else:
                 profile = profile_for(preferences_path, persona_id, provider, ui_language)
@@ -542,13 +597,17 @@ def play(args):
                 sections.append("Legal actions:\n" + "\n".join(f"{i}. {lbl}" for i, (lbl, _) in enumerate(opts)))
                 prompt = "\n\n".join(section for section in sections if section)
                 cmd, reason = None, ""
-                for attempt in range(3):
+                for attempt in range(REQUEST_ATTEMPTS):
                     try:
-                        reply = parse_reply(llm.ask(prompt))
-                    except Exception as e:  # network / API errors
-                        print(f"  ! LLM error: {e}")
-                        time.sleep(3 * (attempt + 1))
+                        raw_reply = llm.ask(prompt)
+                    except Exception as error:
+                        detail, retryable = request_failure(error)
+                        if not retryable or attempt == REQUEST_ATTEMPTS - 1:
+                            raise SystemExit(f"AI request failed: {detail}") from None
+                        print(f"  ! AI request issue: {detail} Retrying.")
+                        time.sleep(attempt + 1)
                         continue
+                    reply = parse_reply(raw_reply)
                     if not isinstance(reply, dict):
                         continue
                     if "indices" in reply and d == "card_select":
@@ -568,8 +627,8 @@ def play(args):
                         reason = "random" if args.provider == "random" else " ".join(message.split())
                         break
                 if cmd is None:
-                    cmd = opts[0][1] if opts else act("skip_select")
-                    reason = "(fallback: could not parse LLM reply)"
+                    cmd = fallback_action(s, opts)
+                    reason = "(fallback: the provider replied without a legal action)"
             last_error = None
             label = next((l for l, c in opts if c == cmd), json.dumps(cmd.get("args", cmd.get("action"))))
             hp = (s.get("player") or {}).get("hp")
