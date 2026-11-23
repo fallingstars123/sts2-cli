@@ -6,13 +6,13 @@ A Windows desktop launcher for [sts2-cli](https://github.com/wuhao21/sts2-cli). 
 
 ## Download and play
 
-**[Download the Windows x64 portable ZIP](https://github.com/fallingstars123/sts2-cli/releases/latest/download/sts2-cli-windows-x64.zip)**
+**[Download the Windows x64 Steam Full Run ZIP](https://github.com/fallingstars123/sts2-cli/releases/latest/download/sts2-cli-windows-x64.zip)**
 
 1. Install **Slay the Spire 2** through Steam and download the ZIP.
 2. Extract the entire ZIP into a writable folder and double-click `Start STS2.cmd`.
-3. For manual play, choose **Start run**. In **AI play**, choose a persona and select **Steam Full Run** or **Play in terminal**. On first terminal play, the launcher locates your Steam game automatically.
+3. Copy the included Sts2LiveBridge folder into the game's mods directory, restart the game, and enable the bridge. Open a single-player run, select a persona, then click **Steam Full Run**.
 
-The ZIP includes Python and .NET. With the Steam game installed, manual play, saves, maps, and analysis work offline. For AI play, save your provider key in **API settings** under the gear menu and select a model in **Persona panel**. AI play, model refresh, and installing a missing AI client require an internet connection.
+The ZIP includes Python and the Steam bridge. Save your provider key in **API settings** in the gear menu and choose a model in **Persona panel**. AI play, model refresh, and the first installation of a provider client require internet access. For offline terminal play, see the [terminal package and supported game version](https://github.com/fallingstars123/sts2-cli/releases/tag/windows-v0.1.4).
 
 ### Steam Full Run
 

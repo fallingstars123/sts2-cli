@@ -64,12 +64,13 @@ def package(args, scratch):
         raise ValueError("Choose the directory of an installed Windows copy of Slay the Spire 2.")
     compile_root, release = scratch / "build", scratch / PACKAGE_NAME
     shutil.copytree(ROOT / "src", compile_root / "src", ignore=shutil.ignore_patterns("bin", "obj"))
-    for name in GAME_DLLS:
-        copy_file(game / name, compile_root / "lib" / name)
-    patcher = compile_root / "patcher"
-    patcher_sources(patcher)
-    build(args.dotnet_sdk, patcher / "Patcher.csproj", "Release")
-    build(args.dotnet_sdk, compile_root / "src" / "Sts2Headless" / "Sts2Headless.csproj", "Debug")
+    if not args.steam_only:
+        for name in GAME_DLLS:
+            copy_file(game / name, compile_root / "lib" / name)
+        patcher = compile_root / "patcher"
+        patcher_sources(patcher)
+        build(args.dotnet_sdk, patcher / "Patcher.csproj", "Release")
+        build(args.dotnet_sdk, compile_root / "src" / "Sts2Headless" / "Sts2Headless.csproj", "Debug")
     bridge = compile_root / "src" / "Sts2LiveBridge"
     build(args.dotnet_sdk, bridge / "Sts2LiveBridge.csproj", "Release", f"-p:Sts2GameDir={game.parent.resolve()}")
 
@@ -83,14 +84,15 @@ def package(args, scratch):
             copy_file(ROOT / screenshot, release / screenshot)
     launcher = release / "Start STS2.cmd"
     launcher.write_text(launcher.read_text(encoding="ascii"), encoding="ascii", newline="\r\n")
-    for name in ENGINE_FILES:
-        copy_file(compile_root / ENGINE_OUTPUT / name, release / ENGINE_OUTPUT / name)
-    patcher_runtime = release / "runtime" / "patcher"
-    for artifact in (patcher / "bin" / "Release" / "net9.0").iterdir():
-        if artifact.suffix == ".dll" or artifact.name.endswith((".deps.json", ".runtimeconfig.json")):
-            copy_file(artifact, patcher_runtime / artifact.name)
-    copy_file(args.cecil_license, patcher_runtime / "Mono.Cecil.LICENSE.txt")
-    shutil.copytree(args.dotnet_dir, release / "runtime" / "dotnet")
+    if not args.steam_only:
+        for name in ENGINE_FILES:
+            copy_file(compile_root / ENGINE_OUTPUT / name, release / ENGINE_OUTPUT / name)
+        patcher_runtime = release / "runtime" / "patcher"
+        for artifact in (patcher / "bin" / "Release" / "net9.0").iterdir():
+            if artifact.suffix == ".dll" or artifact.name.endswith((".deps.json", ".runtimeconfig.json")):
+                copy_file(artifact, patcher_runtime / artifact.name)
+        copy_file(args.cecil_license, patcher_runtime / "Mono.Cecil.LICENSE.txt")
+        shutil.copytree(args.dotnet_dir, release / "runtime" / "dotnet")
     python = release / "runtime" / "python"
     for component in args.python_dir:
         shutil.copytree(component, python, dirs_exist_ok=True,
@@ -117,13 +119,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--python-dir", type=Path, action="append", required=True,
                         help="official Python runtime directory or expanded MSI component (repeat for each)")
-    parser.add_argument("--dotnet-dir", type=Path, required=True, help="expanded Windows x64 .NET 9 runtime")
+    parser.add_argument("--dotnet-dir", type=Path, help="expanded Windows x64 .NET 9 runtime for terminal play")
+    parser.add_argument("--steam-only", action="store_true", help="Package the launcher and Steam bridge without the terminal engine.")
     parser.add_argument("--dotnet-sdk", default="dotnet", help="build-time .NET SDK executable")
     parser.add_argument("--game-dir", type=Path, required=True)
-    parser.add_argument("--cecil-license", type=Path, required=True, help="license file for Mono.Cecil 0.11.6")
+    parser.add_argument("--cecil-license", type=Path, help="license file for Mono.Cecil 0.11.6")
     parser.add_argument("--pillow-wheel", type=Path, required=True, help="official Pillow wheel matching the Python runtime")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if not args.steam_only and (args.dotnet_dir is None or args.cecil_license is None):
+        parser.error("--dotnet-dir and --cecil-license are required when including the terminal engine.")
     with TemporaryDirectory(prefix="sts2-portable-") as scratch:
         package(args, Path(scratch))
 

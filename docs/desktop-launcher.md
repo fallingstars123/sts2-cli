@@ -2,7 +2,7 @@
 
 [中文说明](#中文) · [English README](../README.md)
 
-Start with the [Windows portable ZIP](../README.md#download-and-play). Extract the whole folder, double-click `Start STS2.cmd`, and start a manual run to confirm the launcher can find your Steam installation. On first play, the launcher prepares the game dependencies and English and Chinese game text inside the extracted folder. If it cannot locate the game, choose its installation folder. Adapter compatibility can vary by game version. Tested builds are listed in the [release notes](https://github.com/fallingstars123/sts2-cli/releases).
+Extract the [Windows portable ZIP](../README.md#download-and-play), double-click `Start STS2.cmd`, and install the included bridge for Steam Full Run. The [Steam setup guide](steam-mod.md) covers installation, startup, and stopping. The terminal controls appear on installations that include the terminal engine.
 
 The Fool is selectable for game builds that include that character. Mega Crit introduced the character in the Steam `public-beta` branch in v0.113.0. [Official beta notes](https://store.steampowered.com/news/app/2868840/view/708914333639245837)
 
@@ -26,7 +26,7 @@ The launcher sends current game state to the selected provider when requesting a
 
 [简体中文 README](../README.zh-CN.md)
 
-下载并完整解压 [Windows 便携版 ZIP](../README.zh-CN.md#下载与启动)，然后双击 `Start STS2.cmd`。可以先手动开一局，确认启动器能找到已安装的 Steam 游戏。首次开局会在解压目录内准备游戏依赖和中英文游戏文本。如果没有自动找到游戏，选择安装目录即可。适配情况因游戏版本而异，已测试的构建见 [发布说明](https://github.com/fallingstars123/sts2-cli/releases)。
+完整解压 [Windows 便携版 ZIP](../README.zh-CN.md#下载与启动)，双击 `Start STS2.cmd`。先按 [Steam 桥接指南](steam-mod.md#简体中文) 安装包内附带的桥接，再开始整局托管。终端入口会在含终端引擎的安装里显示。
 
 启动器可为包含愚者的游戏版本选择该角色。愚者由 Steam `public-beta` 的 v0.113.0 首次加入。[官方测试分支公告](https://store.steampowered.com/news/app/2868840/view/708914333639245837)
 

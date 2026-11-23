@@ -1705,13 +1705,14 @@ class PersonaEditor:
                                                 command=self.refresh_models)
         self.refresh_models_button.grid(row=4, column=1, sticky="e", pady=(4, 0))
 
-        ttk.Label(area, text=launcher.text("character")).grid(row=5, column=0, sticky="w", pady=(10, 6))
-        ttk.Label(area, text=launcher.text("ascension")).grid(row=5, column=1, sticky="w", padx=(8, 0), pady=(10, 6))
         role, self.role_box = launcher.character_picker(area, 18, card["character"])
-        role.grid(row=6, column=0, sticky="ew", padx=(0, 8))
         self.ascension_box = ttk.Combobox(area, state="readonly", width=18, font=launcher.fonts["body"], values=tuple(range(11)))
-        self.ascension_box.grid(row=6, column=1, sticky="ew", padx=(8, 0))
         self.ascension_box.current(card["ascension"])
+        if launcher.terminal_available:
+            ttk.Label(area, text=launcher.text("character")).grid(row=5, column=0, sticky="w", pady=(10, 6))
+            ttk.Label(area, text=launcher.text("ascension")).grid(row=5, column=1, sticky="w", padx=(8, 0), pady=(10, 6))
+            role.grid(row=6, column=0, sticky="ew", padx=(0, 8))
+            self.ascension_box.grid(row=6, column=1, sticky="ew", padx=(8, 0))
         ttk.Checkbutton(area, text=launcher.text("expression"), variable=self.enabled).grid(row=7, column=0, sticky="w", pady=(6, 0))
         ttk.Label(area, text=launcher.text("identity_card")).grid(row=8, column=0, columnspan=2, sticky="w", pady=(12, 6))
         self.voice = tk.Text(area, width=44, height=6, wrap="word", bg=FIELD, fg=TEXT_COLOR,
@@ -1920,7 +1921,10 @@ class Launcher:
         self.root = root
         self.project = project
         self.language = "zh"
-        self.mode = "manual"
+        engine = project / "src" / "Sts2Headless"
+        self.terminal_available = ((engine / "Sts2Headless.csproj").is_file()
+                                   or (engine / "bin" / "Debug" / "net9.0" / "Sts2Headless.dll").is_file())
+        self.mode = "manual" if self.terminal_available else "ai_play"
         self.child = None
         self.console_started = None
         self.history = None
@@ -2021,7 +2025,8 @@ class Launcher:
         panel.pack(fill="x")
         panel.grid_columnconfigure((0, 1), weight=1, uniform="fields")
         modes = ttk.Frame(panel, style="Panel.TFrame")
-        modes.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 15))
+        if self.terminal_available:
+            modes.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 15))
         modes.grid_columnconfigure((0, 1), weight=1, uniform="modes")
         self.modes = {}
         for column, name in enumerate(("manual", "ai_play")):
@@ -2054,7 +2059,8 @@ class Launcher:
         self.persona_panel_button = ttk.Button(self.api_panel, style="Language.TButton", command=self.show_persona_panel)
         self.persona_panel_button.grid(row=1, column=1, sticky="e")
         preview_frame = ttk.Frame(self.api_panel, style="Panel.TFrame")
-        preview_frame.grid(row=2, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        if self.terminal_available:
+            preview_frame.grid(row=2, column=0, columnspan=2, sticky="w", pady=(6, 0))
         self.persona_role_icon = tk.Canvas(preview_frame, width=25, height=25, bg=PANEL, highlightthickness=0)
         self.persona_role_icon.pack(side="left", padx=(0, 5))
         self.run_preview = ttk.Label(preview_frame, style="Caption.TLabel")
@@ -2081,7 +2087,8 @@ class Launcher:
         actions.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(17, 0))
         actions.grid_columnconfigure(0, weight=1)
         self.start_button = ttk.Button(actions, style="Selected.TButton", command=self.start_game)
-        self.start_button.grid(row=0, column=0, sticky="e")
+        if self.terminal_available:
+            self.start_button.grid(row=0, column=0, sticky="e")
         self.steam_run_button = ttk.Button(actions, style="Selected.TButton", command=self.start_steam_run)
         self.steam_run_button.grid(row=0, column=1, sticky="e", padx=(8, 0))
         footer = ttk.Frame(content)
@@ -2311,6 +2318,8 @@ class Launcher:
             self.inventory_book.refresh()
 
     def select_mode(self, mode):
+        if mode == "manual" and not self.terminal_available:
+            return
         self.mode = mode
         self.refresh()
 
@@ -2386,7 +2395,7 @@ class Launcher:
         self.status_label.configure(text=self.text(self.status_key) if self.status_key else "")
 
     def start_game(self):
-        if self.child is not None:
+        if self.child is not None or not self.terminal_available:
             return
         if self.mode == "manual":
             character = CHARACTERS[self.character_box.current()]

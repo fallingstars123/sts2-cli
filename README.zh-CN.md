@@ -6,13 +6,13 @@
 
 ## 下载与启动
 
-**[下载 Windows x64 便携版 ZIP](https://github.com/fallingstars123/sts2-cli/releases/latest/download/sts2-cli-windows-x64.zip)**
+**[下载 Windows x64 Steam 整局托管 ZIP](https://github.com/fallingstars123/sts2-cli/releases/latest/download/sts2-cli-windows-x64.zip)**
 
 1. 通过 Steam 安装《杀戮尖塔 2》，然后下载上面的 ZIP。
 2. 将 ZIP 完整解压到一个可写目录，再双击里面的 `Start STS2.cmd`。
-3. 手动游玩点 **开始对局**。AI 游玩先选人物，再点 **Steam 整局托管** 或 **终端开局**。首次通过终端开局会自动查找 Steam 游戏。
+3. 把包里的 Sts2LiveBridge 文件夹复制到游戏的 mods 目录，重启游戏并启用桥接。进入单人对局后，在启动器里选人物并点击 **Steam 整局托管**。
 
-ZIP 已包含 Python 和 .NET 运行环境。安装 Steam 游戏后，手动游玩、读档、地图和分析都可离线使用。AI 游玩、手动刷新模型和安装缺失的 API 客户端时需要联网。
+ZIP 已包含 Python 和 Steam 桥接。在齿轮的 **API 设置** 保存服务商密钥，再到 **人物面板** 选择模型。AI 游玩、刷新模型和首次安装 API 客户端需要联网。离线终端玩法见[终端版及其支持的游戏版本](https://github.com/fallingstars123/sts2-cli/releases/tag/windows-v0.1.4)。
 
 ### Steam 整局托管
 
