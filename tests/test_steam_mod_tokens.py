@@ -139,6 +139,25 @@ def test_a_filled_hand_selection_is_confirmed_locally():
     assert agent._completed_hand_selection(partial, ["toggle_card_choice x"]) is None
 
 
+def test_optional_hand_replacement_can_finish_without_reversing_its_own_picks():
+    confirm = {"id": "hand_card.confirm", "kind": "confirm_card_choice", "detail": {}}
+    select = {"id": "hand_card.select.0", "kind": "toggle_card_choice", "detail": {"selected": False}}
+    deselect = {"id": "hand_card.deselect.1", "kind": "toggle_card_choice", "detail": {"selected": True}}
+    actions = [select, deselect, confirm]
+    state = {"screen": "card_selection", "state": {
+        "location": "combat_hand", "mode": "SimpleSelect", "min_select": 0, "max_select": 999999999,
+        "selected_count": 1, "prompt": "[center]Choose any number of cards to replace.[/center]",
+    }}
+    assert agent._hand_replacement_actions(state, actions, []) == actions
+    recent = ["use_potion GAMBLERS_BREW", "toggle_card_choice hand_card.select.1"]
+    assert agent._hand_replacement_actions(state, actions, recent) == [select, confirm]
+    assert agent._completed_hand_selection({**state, "actions": [select, confirm]}, recent) is None
+    assert agent._completed_hand_selection({**state, "actions": [confirm]}, recent) == confirm
+
+    state["state"]["prompt"] = "Choose any number of cards to retain."
+    assert agent._hand_replacement_actions(state, actions, recent) == actions
+
+
 def with_end_turn(state):
     return {**state, "actions": [*state["actions"], {"id": "end", "kind": "end_turn", "detail": {}}]}
 

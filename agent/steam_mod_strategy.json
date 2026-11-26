@@ -277,6 +277,35 @@
     },
     "SILENT": {
       "source": "silent",
+      "poison_recipe": {
+        "name": "Silent Corrosive Wave cycle",
+        "exception_cards": ["CORROSIVE_WAVE", "ADRENALINE"],
+        "stages": [
+          {
+            "role": "draw",
+            "target": 4,
+            "cards": ["ADRENALINE", "CALCULATED_GAMBLE", "BACKFLIP", "ACROBATICS", "ESCAPE_PLAN",
+                      "PREPARED", "DAGGER_THROW"]
+          },
+          {
+            "role": "efficient_defense",
+            "target": 3,
+            "cards": ["BACKFLIP", "LEG_SWEEP", "DEFLECT", "ESCAPE_PLAN", "CLOAK_AND_DAGGER",
+                      "FOOTWORK", "MIRAGE"]
+          },
+          {
+            "role": "early_poison",
+            "target": 2,
+            "cards": ["POISONED_STAB", "DEADLY_POISON", "NOXIOUS_FUMES", "BOUNCING_FLASK", "SNAKEBITE"]
+          },
+          {
+            "role": "poison_payoff",
+            "target": 1,
+            "requires": {"early_poison": 1},
+            "cards": ["ACCELERANT", "OUTBREAK"]
+          }
+        ]
+      },
       "named": [
         {
           "cards": [
@@ -430,6 +459,115 @@
     },
     "DEFECT": {
       "source": "defect",
+      "recipe": {
+        "name": "Defect defense, draw and energy",
+        "exception_cards": ["MACHINE_LEARNING"],
+        "copy_limits": {"COOLHEADED": 2, "BALL_LIGHTNING": 2, "OVERCLOCK": 1},
+        "stages": [
+          {
+            "role": "efficient_defense",
+            "target": 3,
+            "cards": ["GLACIER", "CHARGE_BATTERY", "BOOT_SEQUENCE", "LIGHTNING_ROD", "SHADOW_SHIELD", "LEAP"]
+          },
+          {
+            "role": "efficient_damage",
+            "target": 2,
+            "cards": ["MOMENTUM_STRIKE", "BALL_LIGHTNING", "SWEEPING_BEAM", "COLD_SNAP"]
+          },
+          {
+            "role": "energy",
+            "target": 1,
+            "cards": ["CHARGE_BATTERY", "TURBO", "FUSION"]
+          },
+          {
+            "role": "fast_draw",
+            "target": 2,
+            "cards": ["OVERCLOCK", "SKIM", "FTL", "MACHINE_LEARNING"]
+          },
+          {
+            "role": "area_pressure",
+            "target": 1,
+            "cards": ["SWEEPING_BEAM", "REFRACT", "HAILSTORM", "SHATTER", "HYPERBEAM"],
+            "picks": ["SWEEPING_BEAM"]
+          },
+          {
+            "role": "lightning_supply",
+            "target": 2,
+            "cards": ["ZAP", "BALL_LIGHTNING", "LIGHTNING_ROD", "TEMPEST", "VOLTAIC"],
+            "picks": ["BALL_LIGHTNING", "LIGHTNING_ROD"]
+          },
+          {
+            "role": "targeted_lightning",
+            "target": 1,
+            "requires": {"lightning_supply": 1},
+            "cards": ["TESLA_COIL"]
+          },
+          {
+            "role": "frost_supply",
+            "target": 3,
+            "cards": ["GLACIER", "COOLHEADED", "COLD_SNAP", "ICE_LANCE", "CHILL"],
+            "picks": ["GLACIER", "COOLHEADED", "COLD_SNAP"]
+          },
+          {
+            "role": "flexible_retrieval",
+            "target": 1,
+            "cards": ["HOLOGRAM"]
+          }
+        ],
+        "branches": [
+          {
+            "name": "Mixed orbs",
+            "anchors": ["GLACIER", "COOLHEADED", "COLD_SNAP", "ICE_LANCE", "CHILL",
+                        "BALL_LIGHTNING", "LIGHTNING_ROD", "TEMPEST", "TESLA_COIL", "VOLTAIC"],
+            "minimum": 2,
+            "stages": [
+              {"role": "focus", "target": 1, "cards": ["DEFRAGMENT", "HOTFIX", "BIASED_COGNITION"],
+               "picks": ["DEFRAGMENT", "HOTFIX"]},
+              {"role": "mixed_focus", "target": 1, "requires": {"lightning_supply": 2, "frost_supply": 1},
+               "cards": ["DEFRAGMENT", "SYNCHRONIZE", "HOTFIX", "BIASED_COGNITION"], "picks": ["SYNCHRONIZE"]},
+              {"role": "orb_draw", "target": 1, "requires": {"lightning_supply": 1, "frost_supply": 1},
+               "cards": ["COMPILE_DRIVER"]},
+              {"role": "lightning_payoff", "target": 1, "requires": {"lightning_supply": 3},
+               "cards": ["VOLTAIC", "THUNDER"]}
+            ]
+          },
+          {
+            "name": "Status cards",
+            "anchors": ["BOOST_AWAY", "FIGHT_THROUGH", "GUNK_UP", "OVERCLOCK", "TURBO",
+                        "COMPACT", "ITERATION", "SMOKESTACK", "TRASH_TO_TREASURE", "FLAK_CANNON"],
+            "minimum": 3,
+            "stages": [
+              {"role": "status_supply", "target": 2, "cards": ["BOOST_AWAY", "FIGHT_THROUGH", "GUNK_UP", "OVERCLOCK", "TURBO"],
+               "picks": ["BOOST_AWAY", "GUNK_UP"]},
+              {"role": "status_cleanup", "target": 1, "requires": {"status_supply": 2}, "cards": ["COMPACT"]},
+              {"role": "status_payoff", "target": 1, "requires": {"status_supply": 2},
+               "cards": ["ITERATION", "SMOKESTACK", "TRASH_TO_TREASURE", "FLAK_CANNON"],
+               "picks": ["ITERATION", "SMOKESTACK", "TRASH_TO_TREASURE"]}
+            ]
+          },
+          {
+            "name": "Zero-cost replay",
+            "anchors": ["BEAM_CELL", "GO_FOR_THE_EYES", "FTL", "CLAW", "ADAPTIVE_STRIKE", "ALL_FOR_ONE", "FERAL"],
+            "minimum": 3,
+            "stages": [
+              {"role": "zero_cost_targets", "target": 3,
+               "cards": ["GO_FOR_THE_EYES", "BEAM_CELL", "FTL", "TESLA_COIL", "CLAW"],
+               "picks": ["GO_FOR_THE_EYES", "BEAM_CELL"]},
+              {"role": "zero_cost_replay", "target": 1, "requires": {"zero_cost_targets": 3},
+               "cards": ["ALL_FOR_ONE", "FERAL"], "picks": ["ALL_FOR_ONE"]}
+            ]
+          },
+          {
+            "name": "Dark evocation",
+            "anchors": ["DARKNESS", "SHADOW_SHIELD", "SHATTER"],
+            "minimum": 2,
+            "stages": [
+              {"role": "dark_supply", "target": 2, "cards": ["DARKNESS", "SHADOW_SHIELD"]},
+              {"role": "dark_release", "target": 1, "requires": {"dark_supply": 1}, "cards": ["SHATTER"]}
+            ]
+          }
+        ]
+      },
       "named": [
         {
           "cards": [
@@ -606,6 +744,100 @@
     },
     "NECROBINDER": {
       "source": "necrobinder",
+      "sealed_draft": {
+        "priority": [
+          "BLIGHT_STRIKE", "NEGATIVE_PULSE", "DEATHS_DOOR", "DEATHBRINGER",
+          "GRAVE_WARDEN", "REAVE", "SOW", "WISP", "INVOKE", "ENFEEBLING_TOUCH",
+          "DEFY", "PARSE", "SHROUD", "DEFILE", "FEAR", "GRAVEBLAST",
+          "LETHALITY", "DRAIN_POWER", "POKE", "PULL_AGGRO", "SCOURGE",
+          "CAPTURE_SPIRIT", "SEANCE", "SEVERANCE", "HIGH_FIVE", "BORROWED_TIME"
+        ],
+        "skip_for_direction": {
+          "Doom defense": {
+            "archetype": "Doom",
+            "cards": ["REAP", "GRAVEBLAST", "PULL_FROM_BELOW", "FLATTEN", "SQUEEZE"],
+            "covered_roles": {"DEFY": "efficient_defense", "REAVE": "soul_supply"},
+            "copy_limits": {"SOW": 1, "NEGATIVE_PULSE": 2, "SLEIGHT_OF_FLESH": 2}
+          }
+        },
+        "groups": [
+          {"cards": ["BLIGHT_STRIKE", "NEGATIVE_PULSE", "DEATHBRINGER", "SCOURGE", "END_OF_DAYS"], "target": 3},
+          {"cards": ["DEATHS_DOOR", "SHROUD"], "target": 1},
+          {"cards": ["NEGATIVE_PULSE", "GRAVE_WARDEN", "DEATHS_DOOR", "ENFEEBLING_TOUCH", "DEFY", "PULL_AGGRO"], "target": 4},
+          {"cards": ["BLIGHT_STRIKE", "REAVE", "SOW", "DEFILE", "FEAR", "DRAIN_POWER", "POKE"], "target": 3},
+          {"cards": ["REAVE", "GRAVE_WARDEN", "WISP", "INVOKE", "PARSE", "CAPTURE_SPIRIT", "SEVERANCE"], "target": 4}
+        ]
+      },
+      "recipe": {
+        "name": "Necrobinder defense, draw and energy",
+        "exception_cards": ["HANG", "SEANCE"],
+        "copy_limits": {"GRAVE_WARDEN": 2, "DEFY": 2},
+        "stages": [
+          {
+            "role": "efficient_defense",
+            "target": 3,
+            "cards": ["GRAVE_WARDEN", "DEFY", "PULL_AGGRO", "NEGATIVE_PULSE"]
+          },
+          {
+            "role": "draw",
+            "target": 2,
+            "cards": ["PARSE", "SCOURGE", "SEVERANCE", "FETCH"]
+          },
+          {
+            "role": "reusable_energy",
+            "target": 1,
+            "cards": ["INVOKE", "FRIENDSHIP"],
+            "picks": ["INVOKE"]
+          },
+          {
+            "role": "soul_supply",
+            "target": 2,
+            "cards": ["CAPTURE_SPIRIT", "GRAVE_WARDEN", "SEANCE", "SEVERANCE", "REAVE"]
+          },
+          {
+            "role": "area_pressure",
+            "target": 1,
+            "cards": ["DEATHBRINGER", "END_OF_DAYS"]
+          }
+        ],
+        "branches": [
+          {"name": "Hang", "locked_by": "HANG", "stages": []},
+          {
+            "name": "Souls",
+            "anchors": ["GRAVE_WARDEN", "CAPTURE_SPIRIT", "SEANCE", "SEVERANCE", "DIRGE", "REAVE"],
+            "minimum": 3,
+            "stages": [
+              {"role": "soul_payoff", "target": 1, "requires": {"draw": 1},
+               "cards": ["HAUNT", "DEATH_MARCH", "SOUL_STORM"]},
+              {"role": "soul_energy_sink", "target": 1, "requires": {"reusable_energy": 1}, "cards": ["DIRGE"]}
+            ]
+          },
+          {
+            "name": "Osty",
+            "anchors": ["FLATTEN", "SIC_EM", "SNAP", "FETCH", "SPUR", "CALCIFY", "DIRGE"],
+            "minimum": 2,
+            "stages": [
+              {"role": "osty_support", "target": 1, "cards": ["PULL_AGGRO", "INVOKE", "SPUR"]}
+            ]
+          },
+          {
+            "name": "Doom defense",
+            "anchors": ["BLIGHT_STRIKE", "DEATHBRINGER", "SCOURGE", "NEGATIVE_PULSE", "OBLIVION", "END_OF_DAYS"],
+            "minimum": 2,
+            "stages": [
+              {"role": "doom_defense", "target": 1, "cards": ["DEATHS_DOOR", "SHROUD"], "picks": ["DEATHS_DOOR"]}
+            ]
+          },
+          {
+            "name": "Ethereal",
+            "anchors": ["DEFY", "PARSE", "DEFILE", "SCULPTING_STRIKE", "VEILPIERCER", "CALL_OF_THE_VOID", "DEMESNE"],
+            "minimum": 3,
+            "stages": [
+              {"role": "ethereal_payoff", "target": 1, "cards": ["PAGESTORM", "SPIRIT_OF_ASH", "PULL_FROM_BELOW"]}
+            ]
+          }
+        ]
+      },
       "named": [
         {
           "cards": [
@@ -874,7 +1106,7 @@
             "NOCK",
             "ARCHERY"
           ],
-          "role": "Arrow supply when the deck can retrieve and fire the same shot repeatedly"
+          "role": "Setup for repeated Shots through Arrow access or Aim"
         },
         {
           "cards": [
@@ -946,6 +1178,237 @@
     },
     "REGENT": {
       "source": "regent",
+      "recipe": {
+        "name": "Regent Star cycle",
+        "skip_unmatched": true,
+        "exception_cards": [
+          "BIG_BANG",
+          "TYRANNY"
+        ],
+        "first_act_damage": {
+          "target": 2,
+          "cards": [
+            "CELESTIAL_MIGHT",
+            "COLLISION_COURSE",
+            "WROUGHT_IN_WAR",
+            "SOLAR_STRIKE",
+            "SHINING_STRIKE",
+            "PHOTON_CUT",
+            "BULWARK"
+          ],
+          "star_cards": [
+            "ASTRAL_PULSE",
+            "GAMMA_BLAST",
+            "STARDUST",
+            "BLACK_HOLE"
+          ]
+        },
+        "opening": [
+          "ALIGNMENT",
+          "SHINING_STRIKE",
+          "KNOW_THY_PLACE",
+          "PHOTON_CUT",
+          "REFINE_BLADE",
+          "GATHER_LIGHT",
+          "COLLISION_COURSE",
+          "WROUGHT_IN_WAR",
+          "SOLAR_STRIKE"
+        ],
+        "stages": [
+          {
+            "role": "star_supply",
+            "target": 2,
+            "cards": [
+              "GLOW",
+              "SHINING_STRIKE",
+              "HIDDEN_CACHE",
+              "GATHER_LIGHT"
+            ]
+          },
+          {
+            "role": "energy_conversion",
+            "target": 1,
+            "cards": ["ALIGNMENT"]
+          },
+          {
+            "role": "draw",
+            "target": 1,
+            "cards": [
+              "GLOW",
+              "GLIMMER",
+              "SPOILS_OF_BATTLE"
+            ]
+          },
+          {
+            "role": "efficient_defense",
+            "target": 2,
+            "cards": [
+              "GATHER_LIGHT",
+              "KNOW_THY_PLACE",
+              "PARTICLE_WALL",
+              "CLOAK_OF_STARS",
+              "BULWARK",
+              "REFLECT"
+            ]
+          },
+          {
+            "role": "sustained_damage",
+            "target": 1,
+            "requires": {"star_supply": 1},
+            "cards": ["BLACK_HOLE"]
+          },
+          {
+            "role": "damage_payoff",
+            "target": 1,
+            "requires": {"star_supply": 1, "energy_conversion": 1},
+            "cards": ["RADIATE", "STARDUST", "HEAVENLY_DRILL", "LUNAR_BLAST", "SEVEN_STARS"]
+          },
+          {
+            "role": "bulk_draw_fallback",
+            "target": 1,
+            "requires": {"energy_conversion": 1},
+            "cards": ["GLOW", "GLIMMER", "SPOILS_OF_BATTLE", "PROPHESIZE"],
+            "picks": ["PROPHESIZE"]
+          },
+          {
+            "role": "cycling_attack",
+            "target": 1,
+            "cards": ["PHOTON_CUT"]
+          },
+          {
+            "role": "next_turn_draw",
+            "target": 1,
+            "cards": ["GUIDING_STAR"]
+          },
+          {
+            "role": "conditional_draw",
+            "target": 1,
+            "requires": {"star_supply": 2, "energy_conversion": 1, "draw": 1},
+            "cards": ["DECISIONS_DECISIONS"]
+          },
+          {
+            "role": "persistent_energy",
+            "target": 1,
+            "requires": {"draw": 1, "energy_conversion": 1},
+            "cards": ["ORBIT"]
+          },
+          {
+            "role": "star_refill",
+            "target": 1,
+            "requires": {"star_supply": 2, "draw": 1},
+            "cards": ["ROYAL_GAMBLE"]
+          }
+        ]
+      },
+      "forge_recipe": {
+        "name": "Regent Forge",
+        "skip_unmatched": true,
+        "exception_cards": ["BIG_BANG", "TYRANNY"],
+        "cycle": {
+          "star_sources": {
+            "VENERATE": [2, 3],
+            "GLOW": [1, 2],
+            "HIDDEN_CACHE": [4, 5],
+            "SHINING_STRIKE": [2, 2],
+            "GATHER_LIGHT": [1, 1],
+            "SOLAR_STRIKE": [1, 1]
+          },
+          "core_star_costs": {"THE_SMITH": 4, "ALIGNMENT": 2},
+          "optional_star_costs": {"GAMMA_BLAST": 3},
+          "energy": {"SOVEREIGN_BLADE": 2, "CONQUEROR": 1, "THE_SMITH": 1}
+        },
+        "activation": {
+          "forge_cards": [
+            "REFINE_BLADE", "SPOILS_OF_BATTLE", "BULWARK", "WROUGHT_IN_WAR",
+            "FURNACE", "SEEKING_EDGE", "THE_SMITH", "CONQUEROR"
+          ],
+          "early_anchors": ["REFINE_BLADE", "SPOILS_OF_BATTLE", "FURNACE"],
+          "access_cards": ["GLOW", "GLIMMER"],
+          "star_payoffs": ["BLACK_HOLE", "RADIATE", "STARDUST", "SEVEN_STARS"],
+          "blade_payoffs": ["PARRY", "THE_SMITH", "CONQUEROR"]
+        },
+        "unlocked_picks": {
+          "PARRY": "Give Sovereign Blade Block once your Forge cards can make it an attack you play regularly.",
+          "SHINING_STRIKE": "One copy can cover a missing Star source for the Forge deck."
+        },
+        "shop_cards": {
+          "PARRY": 1,
+          "SPOILS_OF_BATTLE": 1,
+          "REFINE_BLADE": 1,
+          "HIDDEN_CACHE": 1,
+          "SHINING_STRIKE": 1,
+          "ROYAL_GAMBLE": 2,
+          "FURNACE": 2,
+          "ALIGNMENT": 3,
+          "GAMMA_BLAST": 3
+        },
+        "stages": [
+          {
+            "role": "blade_block",
+            "target": 1,
+            "cards": ["PARRY"]
+          },
+          {
+            "role": "draw",
+            "target": 2,
+            "cards": ["SPOILS_OF_BATTLE", "GLOW", "GLIMMER"]
+          },
+          {
+            "role": "forge_sources",
+            "target": 2,
+            "cards": [
+              "REFINE_BLADE", "SPOILS_OF_BATTLE", "BULWARK", "WROUGHT_IN_WAR",
+              "FURNACE", "SEEKING_EDGE", "THE_SMITH", "CONQUEROR"
+            ],
+            "picks": ["REFINE_BLADE", "SPOILS_OF_BATTLE", "FURNACE", "BULWARK", "SEEKING_EDGE", "WROUGHT_IN_WAR"]
+          },
+          {
+            "role": "star_supply",
+            "target": 2,
+            "cards": ["GLOW", "HIDDEN_CACHE", "SHINING_STRIKE", "GATHER_LIGHT", "SOLAR_STRIKE"],
+            "picks": ["GLOW", "HIDDEN_CACHE", "SHINING_STRIKE"]
+          },
+          {
+            "role": "energy_conversion",
+            "target": 1,
+            "requires": {"draw": 1},
+            "cards": ["ALIGNMENT"]
+          },
+          {
+            "role": "heavy_forge",
+            "target": 1,
+            "cards": ["THE_SMITH"]
+          },
+          {
+            "role": "star_refill",
+            "target": 1,
+            "requires": {"star_supply": 2, "draw": 1},
+            "cards": ["ROYAL_GAMBLE"]
+          },
+          {
+            "role": "repeatable_forge",
+            "target": 1,
+            "cards": ["FURNACE"]
+          },
+          {
+            "role": "blade_multiplier",
+            "target": 1,
+            "requires": {"forge_sources": 2},
+            "cards": ["CONQUEROR"]
+          },
+          {
+            "role": "weak_and_vulnerable",
+            "target": 1,
+            "requires": {"blade_block": 1},
+            "cards": ["GAMMA_BLAST"]
+          }
+        ],
+        "copy_limits": {
+          "SPOILS_OF_BATTLE": 1,
+          "GLOW": 1,
+          "GLIMMER": 1
+        }
+      },
       "named": [
         {
           "cards": [
@@ -984,6 +1447,16 @@
           ],
           "priority": "high",
           "when": "A dependable Star supply makes this an energy engine. Check the current cost and draw cycle before planning a loop."
+        },
+        {
+          "cards": ["SPOILS_OF_BATTLE"],
+          "priority": "high",
+          "when": "Efficient immediate draw that also builds the Sovereign Blade. Pick it when the deck lacks cycling."
+        },
+        {
+          "cards": ["ROYAL_GAMBLE"],
+          "priority": "conditional",
+          "when": "The refund needs existing Stars. Add it once the deck produces Stars reliably and finds its payoff."
         },
         {
           "cards": [
@@ -1243,8 +1716,8 @@
         "payoffs": ["RADIATE", "CHILD_OF_THE_STARS", "SEVEN_STARS", "REFLECT", "PARTICLE_WALL", "GAMMA_BLAST"]
       },
       "Forge": {
-        "enablers": ["FURNACE", "WROUGHT_IN_WAR", "BULWARK", "REFINE_BLADE", "SPOILS_OF_BATTLE", "BEAT_INTO_SHAPE"],
-        "payoffs": ["SUMMON_FORTH", "SEEKING_EDGE", "CONQUEROR"]
+        "enablers": ["FURNACE", "WROUGHT_IN_WAR", "BULWARK", "REFINE_BLADE", "SPOILS_OF_BATTLE", "BEAT_INTO_SHAPE", "THE_SMITH"],
+        "payoffs": ["SUMMON_FORTH", "SEEKING_EDGE", "CONQUEROR", "PARRY"]
       },
       "Card creation": {
         "enablers": ["QUASAR", "MANIFEST_AUTHORITY", "BUNDLE_OF_JOY", "SPECTRUM_SHIFT"],
@@ -1271,12 +1744,23 @@
     },
     "FOOL": {
       "Arrow Shots": {
-        "enablers": ["ARCHERY", "NOCK", "HONING", "DISLIKE_YOU", "LOCKED_IN", "QUIVER", "BLOT_OUT_THE_SKY", "QUIETUS"],
-        "payoffs": ["HEAVY_SHOT", "DIVINE_SHOT", "RAPID_SHOT", "REPEAT_SHOT", "RAIN_SHOT", "HOBBLING_SHOT", "BLOSSOM_SHOT", "TRICK_SHOT"]
+        "enabler_roles": {
+          "arrow_access": ["NOCK", "QUIVER", "WREST"],
+          "shot_retrieval": ["ARROW_STAB", "LOCKED_IN", "RECALL"],
+          "shot_bonus": ["ARCHERY", "HONING", "DISLIKE_YOU", "BLOT_OUT_THE_SKY"]
+        },
+        "required_roles": ["arrow_access", "shot_retrieval", "payoffs"],
+        "payoffs": ["QUICK_SHOT", "SKY_SHOT", "HEAVY_SHOT", "DIVINE_SHOT", "RAPID_SHOT", "REPEAT_SHOT", "RAIN_SHOT", "HOBBLING_SHOT", "BLOSSOM_SHOT", "TRICK_SHOT", "MELODIC_SHOT", "QUIETUS", "FLORESCENCE"]
       },
       "Melody": {
-        "enablers": ["WAH_CHO_KI", "WAH_CHO", "WAH_KI", "CHO_KI", "KI_VERSE", "CHO_CHORUS"],
-        "payoffs": ["MOTIF", "LOST_LUTE", "LULLABY", "HARMONIC_SHIELD", "CODA", "SONG_PATH", "VIOLENT_CHORD", "RHYTHM_STRIKE", "STEADY_CADENCE", "MELODIC_SHOT"]
+        "enabler_roles": {
+          "ki": ["KI_HOP", "KI_CHANT", "KI_WHIP", "KI_VERSE", "WAH_KI", "CHO_KI", "WAH_CHO_KI"],
+          "wah": ["WAH_HAMMER", "WAH_SWEEP", "WAH_BLAST", "WAH_TOUCH", "WAH_CHO", "WAH_KI", "WAH_CHO_KI"],
+          "cho": ["CHO_BARBS", "CHO_READY", "CHO_FIRM", "CHO_CHORUS", "WAH_CHO", "CHO_KI", "WAH_CHO_KI"],
+          "draw_and_search": ["KI_HOP", "KI_CHANT", "MOTIF", "WISH"]
+        },
+        "required_roles": ["ki", "wah", "cho"],
+        "payoffs": ["LOST_LUTE", "LULLABY", "HARMONIC_SHIELD", "CODA", "SONG_PATH", "VIOLENT_CHORD", "RHYTHM_STRIKE", "STEADY_CADENCE", "MELODIC_SHOT"]
       },
       "Sadness and Joy": {
         "enablers": ["BRIGHTEN_UP", "ENNUI", "JEST", "RUMMAGE", "SORROWFUL_STRIKE", "VITRIOL"],

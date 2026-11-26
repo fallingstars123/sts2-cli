@@ -3,6 +3,7 @@
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 from hashlib import sha256
+from itertools import groupby
 import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -68,6 +69,36 @@ def _atomic_json(path, value):
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
+
+
+def _atomic_text(path, text):
+    temporary = None
+    try:
+        with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, suffix=".tmp", delete=False) as file:
+            temporary = Path(file.name)
+            file.write(text)
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _checkpoint(run, state, screen):
+    def stable(value):
+        if isinstance(value, dict):
+            return {key: stable(item) for key, item in value.items()
+                    if key not in {"instance_id", "target_instance_id"}}
+        if isinstance(value, list):
+            return [stable(item) for item in value]
+        return value
+
+    # Visual overlays are not checkpoints. Compare room state and inventory without
+    # transient battle IDs, so Save and Quit can match a room from an earlier session.
+    inventory = {key: run.get(key) for key in ("hp", "max_hp", "gold", "deck", "potions", "relics")}
+    payload = stable([screen, inventory, state])
+    fingerprint = sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    return {"screen": screen, "turn": state.get("turn") if screen == "combat" else None,
+            "run_instance": run.get("run_instance"), "fingerprint": fingerprint}
 
 
 def _timestamp(value):
@@ -204,6 +235,8 @@ class SteamModArchive:
         self.expected_rooms = {}
         self.previous = None
         self.scene = None
+        self.retry_stage = None
+        self.rewinds = 0
         if identity is not None:
             self.bind(identity)
 
@@ -224,6 +257,8 @@ class SteamModArchive:
                 info = {"started": started.isoformat(timespec="seconds"), "status": "partial", "provider": self.provider,
                         "model": self.model, "character": label, "seed": exact["seed"], "ascension": exact["ascension"],
                         "last_stage": None, "source": "steam_mod", "native_identity": exact}
+            if info.get("run_id") != key:
+                info["run_id"] = key
                 _atomic_json(folder / "run.json", info)
             for path in sorted(folder.glob("*/scene.json")):
                 room = _read_object(path)
@@ -294,6 +329,11 @@ class SteamModArchive:
                                           self.pending[1].get("id") == row.get("action_id") and
                                           isinstance(row.get("action_id"), str))
             return
+        if kind in ("combat_retry_completed", "event_retry_completed"):
+            if self._belongs(row, when):
+                self.retry_stage = _stage(row["run"])
+                self.pending = None
+            return
         if kind in ("start", "state_changed", "grid_recovery"):
             self.pending = None
             self.recovery_accepted = False
@@ -313,7 +353,12 @@ class SteamModArchive:
                 self.pending = None
             return
 
-        if screen == "map" and (coord := _coord(state.get("current"))) is not None:
+        checkpoint = _checkpoint(run, state, screen) if screen in ROOMS else None
+        if kind == "start" or stage == self.retry_stage:
+            self._resume(stage, screen, checkpoint, explicit=stage == self.retry_stage)
+            self.retry_stage = None
+        position = state.get("current") if screen == "map" else run.get("map_coord")
+        if (coord := _coord(position)) is not None:
             self.coordinates[stage] = coord
         decision = None
         if self.pending:
@@ -365,7 +410,10 @@ class SteamModArchive:
             data.update({key: state[key] for key in ("energy", "max_energy", "turn", "hand", "enemies", "encounter") if key in state})
         elif screen in OVERLAYS or screen in ROOMS:
             data["steam_state"] = state
-        records.append({"step": self.step, "ts": row["utc"], "type": "state", "origin": origin, "data": data})
+        entry = {"step": self.step, "ts": row["utc"], "type": "state", "origin": origin, "data": data}
+        if checkpoint and screen == checkpoint["screen"]:
+            entry["checkpoint"] = checkpoint
+        records.append(entry)
         self._write_records(self.folder / "gameplay.jsonl", records)
         self.seen.add(origin)
         if scene is not None:
@@ -386,6 +434,128 @@ class SteamModArchive:
         if screen == "settlement":
             self._settle(state, row["utc"])
         _atomic_json(self.folder / "run.json", self.info)
+
+    def _resume(self, stage, screen, checkpoint, *, explicit):
+        previous = _stage(_object(self.info.get("last_stage")))
+        if previous is None or stage > previous:
+            return
+        # Only reloads can replace a branch. Ordinary repeated screens keep their history.
+        path = self.folder / "gameplay.jsonl"
+        records = list(_rows(path))
+        boundary = None
+        in_floor = []
+        for index, record in enumerate(records):
+            data = _object(record.get("data"))
+            old_stage = _stage(_object(data.get("context")))
+            if old_stage is None:
+                continue
+            if old_stage >= stage and boundary is None:
+                # Actions immediately before a state share its origin and must stay with it.
+                start = index
+                while start and records[start - 1].get("origin") == record.get("origin"):
+                    start -= 1
+                boundary = start
+            if old_stage == stage and data.get("type") == "decision":
+                old = _object(record.get("checkpoint"))
+                if not old:
+                    old = {"screen": "combat" if data.get("decision") == "combat_play" else data.get("decision"),
+                           "turn": data.get("turn")}
+                in_floor.append((index, old))
+
+        prior_rooms = [(index, old) for index, old in in_floor if old.get("screen") == screen]
+        latest = prior_rooms[-1][1] if prior_rooms else {}
+        if checkpoint is not None and prior_rooms:
+            turn, prior_turn = checkpoint["turn"], latest.get("turn")
+            fingerprint = checkpoint["fingerprint"]
+            changed_instance = (checkpoint["run_instance"] and latest.get("run_instance")
+                                and checkpoint["run_instance"] != latest["run_instance"])
+            turn_rewound = (type(turn) is int and type(prior_turn) is int and turn < prior_turn)
+            room_reloaded = bool(changed_instance and (screen == "combat" and turn == 1 or screen == "event"))
+            candidates = prior_rooms if explicit or room_reloaded else reversed(prior_rooms)
+            match = next((index for index, old in candidates if old.get("fingerprint") == fingerprint), None)
+            returned_to_room = (match is not None and match < prior_rooms[-1][0])
+            if stage < previous or explicit or turn_rewound or room_reloaded or returned_to_room:
+                if match is not None:
+                    boundary = match + 1
+                elif type(turn) is int and not explicit and stage == previous and not room_reloaded:
+                    first = next((index for index, old in prior_rooms
+                                  if type(old.get("turn")) is int and old["turn"] >= turn), None)
+                    if first is not None:
+                        boundary = first
+                        while boundary and records[boundary - 1].get("origin") == records[first].get("origin"):
+                            boundary -= 1
+            else:
+                return
+        elif stage == previous and not explicit:
+            return
+        if boundary is None or boundary >= len(records):
+            return
+        self._replace_history(records[:boundary])
+        self.rewinds += 1
+
+    def _replace_history(self, records):
+        old_scenes = set(self.scenes.values())
+        self.scenes.clear()
+        self.seen.clear()
+        self.coordinates.clear()
+        self.expected_rooms.clear()
+        self.step, self.scene, self.previous = 0, None, None
+        scene_states, scene_text = defaultdict(list), defaultdict(list)
+        transcript = []
+        for origin, grouped in groupby(records, key=lambda record: record.get("origin")):
+            chunk = list(grouped)
+            if isinstance(origin, str):
+                self.seen.add(origin)
+            self.step = max((entry["step"] for entry in chunk if type(entry.get("step")) is int), default=self.step)
+            view = next((_object(row.get("data")) for row in reversed(chunk) if row.get("type") == "state"), {})
+            context = _object(view.get("context"))
+            stage = _stage(context)
+            if stage is None:
+                continue
+            if coord := _coord(context.get("map_coord")):
+                self.coordinates[stage] = coord
+            expected = context.get("expected_room")
+            if expected in ROOM_NAMES:
+                self.expected_rooms[stage] = expected
+            else:
+                self.expected_rooms.pop(stage, None)
+            room = context.get("room_type")
+            scene = self._scene_for(stage, "", room) if room in ROOM_NAMES else None
+            if scene is not None:
+                scene_states[scene].extend(chunk)
+            for row in chunk:
+                if row.get("type") != "action":
+                    continue
+                data = _object(row.get("data"))
+                if not isinstance(data.get("action"), str):
+                    continue
+                action = {"kind": data["action"], "detail": data.get("args")}
+                hp = _object(view.get("player")).get("hp", "?")
+                line = f"{row.get('step', self.step)} HP {hp} | {_action_label(action)} -- \n"
+                transcript.append(line)
+                if target := self.scene or scene:
+                    scene_text[target].append(line)
+            self.scene, self.previous = scene, stage
+
+        def json_lines(items):
+            return "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in items)
+
+        # The per-session source journals are untouched. Regenerate the current branch
+        # and hide room files that belonged only to the superseded suffix.
+        _atomic_text(self.folder / "gameplay.jsonl", json_lines(records))
+        _atomic_text(self.folder / "transcript.txt", "".join(transcript))
+        for scene in set(self.scenes.values()):
+            info = _read_object(scene / "scene.json")
+            _atomic_text(scene / "states.jsonl", json_lines(scene_states[scene]))
+            _atomic_text(scene / "transcript.txt",
+                         f"Entered Act {info['act']} · Floor {info['floor']} · {ROOM_NAMES[info['room']]}\n"
+                         + "".join(scene_text[scene]))
+        for scene in old_scenes - set(self.scenes.values()):
+            for name in ("scene.json", "states.jsonl", "transcript.txt"):
+                (scene / name).unlink(missing_ok=True)
+        self.info.update(status="partial", last_stage=dict(zip(("act", "floor"), self.previous)) if self.previous else None)
+        for key in ("ended", "native_outcome", "build"):
+            self.info.pop(key, None)
 
     def _scene_for(self, stage, screen, room):
         if room is None:
@@ -432,9 +602,9 @@ class SteamModArchive:
             file.write(text)
 
 
-def import_steam_mod_journals(history_dir, paths, *, identity, model="deepseek-flash"):
+def import_steam_mod_journals(history_dir, paths, *, identity, provider="DeepSeek", model="deepseek-flash"):
     """Replay caller-verified staged journals in chronological order into one archive."""
-    archive = SteamModArchive(history_dir, identity=identity, model=model)
+    archive = SteamModArchive(history_dir, identity=identity, provider=provider, model=model)
     if archive.folder is None:
         return None
     staged = []

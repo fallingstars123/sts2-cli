@@ -88,6 +88,22 @@ def timestamp(value):
     return None
 
 
+def recent_average_floor(runs, limit=10):
+    """Average the reached floor of the latest completed AI runs with recorded progress."""
+    eligible = []
+    for run in runs:
+        if run.get("status") not in FINISHED or run.get("provider") not in AI_PROVIDERS:
+            continue
+        position = stage(run.get("last_stage"))
+        finished = next((value for key in ("ended", "last_updated", "started")
+                         if (value := timestamp(run.get(key))) is not None), None)
+        if position is not None and finished is not None:
+            eligible.append((finished, position[1]))
+    recent = sorted(eligible, reverse=True)[:limit]
+    count = len(recent)
+    return (sum(floor for _, floor in recent) / count if count else None), count
+
+
 def similar_runs(runs, target):
     keys = ("provider", "model", "character", "ascension")
     start = timestamp(target.get("started"))
@@ -110,6 +126,8 @@ def run_timeline(folder):
 
 def run_progress(folder):
     """Align health and progress snapshots to issued gameplay actions."""
+    info = json_dict(folder / "run.json")
+    steam_victory = info.get("source") == "steam_mod" and info.get("native_outcome") == "victory"
     points = {}
     latest = {}
     previous_relics = Counter()
@@ -129,6 +147,9 @@ def run_progress(folder):
         position = stage(data.get("context"))
         if not isinstance(player, dict) or not position:
             continue
+        if steam_victory and data["decision"] == "settlement" and player.get("hp") == 0:
+            # The victory screen clears the live creature HP after the final event.
+            player = {key: value for key, value in player.items() if key not in {"hp", "max_hp"}}
         latest = {**latest, **player, "act": position[0], "floor": position[1]}
         relics = player.get("relics")
         if isinstance(relics, list):

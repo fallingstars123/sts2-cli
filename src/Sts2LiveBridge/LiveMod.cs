@@ -24,6 +24,7 @@ public static class LiveMod
     private static long _acceptedAt;
     private static bool _overlayOpen;
     private static RunState? _lastRun;
+    private static string? _runInstance;
     private static PipeBridge? _bridge;
 
     public static void Initialize()
@@ -58,6 +59,7 @@ public static class LiveMod
         if (!ReferenceEquals(run, _lastRun))
         {
             _lastRun = run;
+            _runInstance = run is null ? null : Guid.NewGuid().ToString("N");
             _revision++;
         }
 
@@ -66,8 +68,9 @@ public static class LiveMod
             return Unavailable(request, "waiting", "The native game is reloading the current room.", retryFailure);
         if (run == null)
             return Unavailable(request, "idle", "Open a single-player run.", retryFailure);
-        if (manager.NetService?.Type != NetGameType.Singleplayer || run.GameMode != GameMode.Standard || run.Players.Count != 1)
-            return Unavailable(request, "unavailable", "Only standard single-player runs are supported.", retryFailure);
+        if (manager.NetService?.Type != NetGameType.Singleplayer ||
+            run.GameMode is not (GameMode.Standard or GameMode.Daily) || run.Players.Count != 1)
+            return Unavailable(request, "unavailable", "Only standard and daily single-player runs are supported.", retryFailure);
         if (_overlayOpen || PlatformUtil.IsPlatformOverlayOpen())
             return Unavailable(request, "paused", "Close the Steam overlay to continue.", retryFailure);
         if (_acceptedAt != 0 && Stopwatch.GetElapsedTime(_acceptedAt) < TimeSpan.FromMilliseconds(250))
@@ -85,6 +88,11 @@ public static class LiveMod
         {
             Profile = SaveManager.Instance.CurrentProfileId,
             Seed = run.Rng.StringSeed,
+            StartTime = RoomRetry.LiveStartTime(),
+            RunInstance = _runInstance,
+            MapCoord = run.CurrentMapCoord is { } point ? new { Col = point.col, Row = point.row } : null,
+            GameMode = run.GameMode.ToString().ToLowerInvariant(),
+            Modifiers = run.Modifiers.Select(modifier => modifier.Id.Entry).ToArray(),
             Act = run.CurrentActIndex + 1,
             Floor = run.TotalFloor,
             CombatRetryCount = RoomRetry.CombatCount(run),

@@ -8,13 +8,14 @@ import json
 import os
 from pathlib import Path
 from queue import Empty, SimpleQueue
+from random import Random
 import re
 import runpy
 import shutil
 import subprocess
 import sys
 from threading import Thread
-from time import sleep
+from time import monotonic, sleep
 import tkinter as tk
 from tkinter import filedialog, font, messagebox, ttk
 import traceback
@@ -58,7 +59,7 @@ TEXT = {
         "console_failed": "终端执行失败，详情见终端提示。",
         "terminal_run": "终端开局",
         "steam_mod_full": "Steam 整局托管",
-        "steam_mod_full_help": "先在 Steam 启用 STS2 Live Bridge 并打开标准单人对局。{provider} 将从当前进度接手。控制台按 Ctrl+C 停止。",
+        "steam_mod_full_help": "先在 Steam 启用 STS2 Live Bridge 并打开标准或每日单人对局。{provider} 将从当前进度接手。控制台按 Ctrl+C 停止。",
         "missing_key": "请在 API 设置里保存 {provider} 的密钥。",
         "missing_sdk": "当前 Python 缺少 {package}。要打开安装窗口吗？",
         "missing_dotnet": "找不到 dotnet，请先安装 .NET 9 SDK。",
@@ -71,6 +72,9 @@ TEXT = {
         "history": "对局记录",
         "refresh": "刷新",
         "open_folder": "打开文件夹",
+        "delete_run": "删除对局",
+        "delete_run_confirm": "将这局的记录移到回收站？\n\n{run}",
+        "delete_run_failed": "无法删除对局记录。请确认档案仍在对局记录文件夹里，并关闭正在使用它的程序。",
         "no_runs": "从启动器开一局，过程就会显示在这里。",
         "no_transcript": "这局还没有可显示的记录。",
         "player": "玩家",
@@ -81,6 +85,8 @@ TEXT = {
         "status_error": "异常退出",
         "status_victory": "胜利",
         "status_defeat": "战败",
+        "badge_victory": "胜利！",
+        "badge_defeat": "落败",
         "offline": "离线代理",
         "scene": "第 {act} 幕 · {floor} 层 · {room}",
         "relics_found": "获得遗物：{relics}",
@@ -107,10 +113,10 @@ TEXT = {
         "resource_energy": "能量",
         "resource_potions": "药水",
         "observed_rate": "实测 AI 胜率",
-        "finished_ai": "AI 已分胜负",
+        "recent_average_floor": "最近 10 局平均楼层",
         "stage_estimate": "本局历史估算",
         "wins_sample": "{wins} 胜 / {total} 局",
-        "wins_losses": "{wins} 胜 · {losses} 负",
+        "recent_floor_sample": "{runs} 局样本",
         "no_estimate": "暂无匹配样本",
         "no_selected_run": "请先选择一局",
         "provider_rates": "按服务商统计",
@@ -177,7 +183,7 @@ TEXT = {
         "console_failed": "The terminal task failed. See the console for details.",
         "terminal_run": "Play in terminal",
         "steam_mod_full": "Steam Full Run",
-        "steam_mod_full_help": "Open a standard Steam single-player run with STS2 Live Bridge enabled. {provider} takes over from the current screen. Press Ctrl+C in the console to stop.",
+        "steam_mod_full_help": "Open a standard or daily Steam single-player run with STS2 Live Bridge enabled. {provider} takes over from the current screen. Press Ctrl+C in the console to stop.",
         "missing_key": "Save the API key for {provider} in API settings.",
         "missing_sdk": "This Python installation is missing {package}. Open the installer?",
         "missing_dotnet": "dotnet was not found. Install the .NET 9 SDK.",
@@ -190,6 +196,9 @@ TEXT = {
         "history": "Run history",
         "refresh": "Refresh",
         "open_folder": "Open folder",
+        "delete_run": "Delete run",
+        "delete_run_confirm": "Move this run's records to the Recycle Bin?\n\n{run}",
+        "delete_run_failed": "Couldn't delete this run. Check that the archive is still in the run history folder and isn't in use.",
         "no_runs": "Start a run from the launcher to see it here.",
         "no_transcript": "There is no transcript to show yet.",
         "player": "Player",
@@ -200,6 +209,8 @@ TEXT = {
         "status_error": "Exited with an error",
         "status_victory": "Victory",
         "status_defeat": "Defeat",
+        "badge_victory": "WIN!",
+        "badge_defeat": "LOSE",
         "offline": "Offline agent",
         "scene": "Act {act} · Floor {floor} · {room}",
         "relics_found": "Relics gained: {relics}",
@@ -226,10 +237,10 @@ TEXT = {
         "resource_energy": "Energy",
         "resource_potions": "Potions",
         "observed_rate": "Observed AI win rate",
-        "finished_ai": "Finished AI runs",
+        "recent_average_floor": "Average floor · last 10 runs",
         "stage_estimate": "Historical run estimate",
         "wins_sample": "{wins} wins / {total} runs",
-        "wins_losses": "{wins} wins · {losses} losses",
+        "recent_floor_sample": "Sample of {runs} runs",
         "no_estimate": "No matching runs yet",
         "no_selected_run": "Select a run",
         "provider_rates": "By provider",
@@ -292,6 +303,11 @@ MUTED = "#AAC0B5"
 ACCENT = "#C9EEAB"
 ACCENT_HOVER = "#DCF7C5"
 BLUE = "#89C7EE"
+DIMMED_PANEL = "#1B1E1E"
+DIMMED_FIELD = "#252929"
+DIMMED_BORDER = "#444B4A"
+DIMMED_TEXT = "#C7CDCB"
+DIMMED_MUTED = "#9BA3A1"
 TREE_ROW_HEIGHT = 32
 FONT_FAMILIES = {"zh": "Microsoft YaHei UI", "zh-TW": "Microsoft JhengHei UI", "ja": "Yu Gothic UI",
                  "ko": "Malgun Gothic", "hi": "Nirmala UI", "th": "Leelawadee UI", "en": "Segoe UI"}
@@ -565,6 +581,7 @@ def configure_theme(root):
     style.theme_use("clam")
     style.configure("TFrame", background=BACKGROUND)
     style.configure("Panel.TFrame", background=PANEL)
+    style.configure("Dimmed.Panel.TFrame", background=DIMMED_PANEL)
     style.configure("TLabel", font=fonts["body"], foreground=TEXT_COLOR, background=PANEL)
     style.configure("Title.TLabel", font=fonts["title"], foreground=TEXT_COLOR, background=BACKGROUND)
     style.configure("Status.TLabel", font=fonts["small"], foreground=MUTED, background=BACKGROUND)
@@ -633,11 +650,11 @@ def configure_theme(root):
     style.configure("PlayerName.TLabel", background=PANEL, foreground=TEXT_COLOR, font=fonts["title"])
     style.configure("Caption.TLabel", background=PANEL, foreground=MUTED, font=fonts["small"])
     style.configure("Section.TLabel", background=PANEL, foreground=TEXT_COLOR, font=fonts["button"])
-    style.configure("Inventory.TButton", font=fonts["small"], padding=(6, 3), focusthickness=0)
-    style.map("Inventory.TButton", bordercolor=[("focus", HOVER)])
+    style.configure("Inventory.TLabel", font=fonts["small"], padding=(6, 3), anchor="center",
+                    background=FIELD, foreground=TEXT_COLOR)
     style.configure("Inventory.Treeview", background=PANEL, fieldbackground=PANEL, foreground=TEXT_COLOR,
                     borderwidth=0, bordercolor=PANEL, lightcolor=PANEL, darkcolor=PANEL,
-                    relief="flat", rowheight=22, font=fonts["small"])
+                    relief="flat", rowheight=DeckGrid.ROW_HEIGHT, font=fonts["small"])
     return fonts
 
 
@@ -647,8 +664,8 @@ class DeckGrid(tk.Canvas):
     MIN_CELL_WIDTH = 146
 
     def __init__(self, parent, face):
-        super().__init__(parent, background=PANEL, width=1, height=self.ROW_HEIGHT, borderwidth=0,
-                         highlightthickness=0, yscrollincrement=1)
+        super().__init__(parent, background=PANEL, width=1, height=self.MAX_VISIBLE_ROWS * self.ROW_HEIGHT,
+                         borderwidth=0, highlightthickness=0, yscrollincrement=1)
         self.face = face
         self.columns = 1
         self.layout_width = 1
@@ -680,8 +697,7 @@ class DeckGrid(tk.Canvas):
         self.columns = max(1, min(4, width // self.MIN_CELL_WIDTH))
         row_count = max(1, (len(self.cards) + self.columns - 1) // self.columns)
         height = row_count * self.ROW_HEIGHT
-        self.configure(height=min(row_count, self.MAX_VISIBLE_ROWS) * self.ROW_HEIGHT,
-                       scrollregion=(0, 0, self.layout_width, height))
+        self.configure(scrollregion=(0, 0, self.layout_width, height))
         self.delete("all")
         if width > 30:
             if self.cards:
@@ -765,33 +781,30 @@ class RunInventory:
         self.sections = {}
         self.hovers = {}
         self.row_entries = {}
-        self.expanded = set(self.KINDS)
-        self.player = {}
         area = ttk.Frame(parent)
         area.pack(fill="x", pady=(7, 0))
         area.grid_columnconfigure(0, weight=1, uniform="inventory")
         area.grid_columnconfigure(1, weight=3, uniform="inventory")
         for column, kind in enumerate(self.KINDS):
             panel = ttk.Frame(area, style="Panel.TFrame")
-            panel.grid(row=0, column=column, sticky="new", padx=(0, 5 if column == 0 else 0))
-            button = ttk.Button(panel, style="Inventory.TButton", compound="left",
-                                command=lambda kind=kind: self.toggle(kind))
-            button.pack(fill="x", anchor="n")
+            panel.grid(row=0, column=column, sticky="nsew", padx=(0, 5 if column == 0 else 0))
+            heading = ttk.Label(panel, style="Inventory.TLabel", compound="left")
+            heading.pack(fill="x")
             body = ttk.Frame(panel, style="Panel.TFrame", padding=(2, 2))
-            body.pack(fill="x", expand=True)
+            body.pack(fill="both", expand=True)
             if kind == "deck":
                 table = DeckGrid(body, launcher.fonts["small"])
                 hover_geometry = {"hit_test": table.hit_test, "bounds": table.cell_bounds, "near_pointer": True}
             else:
-                table = ttk.Treeview(body, show="tree", columns=("count",), height=4, style="Inventory.Treeview",
-                                     selectmode="none")
+                table = ttk.Treeview(body, show="tree", columns=("count",), height=DeckGrid.MAX_VISIBLE_ROWS,
+                                     style="Inventory.Treeview", selectmode="none")
                 table.column("#0", width=110, minwidth=56, stretch=True)
                 table.column("count", width=34, minwidth=29, stretch=False, anchor="e")
                 hover_geometry = {"protected": lambda: tuple(section[1].master for section in self.sections.values())}
             table.pack(side="left", fill="both", expand=True)
             bar = ttk.Scrollbar(body, orient="vertical", command=table.yview, style="History.Vertical.TScrollbar")
             bar.pack(side="right", fill="y")
-            self.sections[kind] = (button, body, table)
+            self.sections[kind] = (heading, body, table)
             self.row_entries[kind] = {}
             self.hovers[kind] = CardHover(table, lambda row, kind=kind: self.hover_details(kind, row),
                                         background=PANEL, foreground=TEXT_COLOR, muted=MUTED, border=BORDER,
@@ -801,7 +814,6 @@ class RunInventory:
             else:
                 table.configure(yscrollcommand=bar.set)
         self.signatures = {}
-        self.counts = {}
 
     def sync_deck_scroll(self, bar, first, last):
         bar.set(first, last)
@@ -809,37 +821,17 @@ class RunInventory:
         if hover.anchor is not None and hover.viewport() != hover.anchor:
             hover.hide()
 
-    def toggle(self, kind):
-        body = self.sections[kind][1]
-        if kind in self.expanded:
-            self.hovers[kind].hide()
-            self.expanded.remove(kind)
-            body.pack_forget()
-        else:
-            self.expanded.add(kind)
-            body.pack(fill="x", expand=True)
-        self.update(self.player)
-
-    def set_button(self, kind):
-        count = self.counts.get(kind)
-        label = self.launcher.text("inventory_" + kind)
-        prefix = "▾" if kind in self.expanded else "▸"
-        image = self.launcher.art.resource_icon(kind, "", (13, 13)) if kind == "deck" else None
-        self.sections[kind][0].configure(text=f"{prefix} {label}" + (f" ({count})" if count is not None else ""),
-                                         image=image or "")
-
     def update(self, player):
-        self.player = player
         art = self.launcher.art
         language = engine_language(self.launcher.language)
-        for kind, (_, _, table) in self.sections.items():
+        for kind, (heading, _, table) in self.sections.items():
             inventory = player.get(kind)
             known = isinstance(inventory, list)
             items = [item for item in inventory if isinstance(item, dict)] if known else []
-            self.counts[kind] = len(items) if known else player.get("deck_size") if kind == "deck" else None
-            self.set_button(kind)
-            if kind not in self.expanded:
-                continue
+            count = len(items) if known else player.get("deck_size") if kind == "deck" else None
+            label = self.launcher.text("inventory_" + kind)
+            icon = art.resource_icon(kind, "", (13, 13)) if kind == "deck" else None
+            heading.configure(text=f"{label} ({count})" if count is not None else label, image=icon or "")
             rows = Counter()
             entries = {}
             for item in items:
@@ -903,7 +895,6 @@ class RunInventory:
                     self.row_entries[kind][row] = entries[key]
             if not rows:
                 table.insert("", "end", text=empty_text)
-            table.configure(height=min(5, max(1, len(rows))))
             table.yview_moveto(scroll)
 
     def hover_details(self, kind, row):
@@ -1025,6 +1016,285 @@ class PotionStrip:
                 "image": self.launcher.art.potion_icon(entry.id, (49, 49))}
 
 
+OUTCOME_CORNER_GRID = (64, 46)
+WIN_CORNER_SIZE = (111, 66)
+LOSS_CORNER_SIZE = (110, 49)
+CONFETTI_COLORS = ("#F3CB75", "#D99B5A", "#C9EEAB", "#89C7EE", "#E8A9B1")
+
+
+def draw_outcome_corner(canvas, outcome, *, lower, size, origin=(0, 0)):
+    width, height = size
+    origin_x, origin_y = origin
+
+    def coordinates(points):
+        result = []
+        for x, y in points:
+            x *= width / OUTCOME_CORNER_GRID[0]
+            y *= height / OUTCOME_CORNER_GRID[1]
+            px, py = (x, height - y) if lower else (width - x, y)
+            result.extend((origin_x + px, origin_y + py))
+        return result
+
+    def polygon(points, color):
+        canvas.create_polygon(*coordinates(points), fill=color, tags="corner")
+
+    def line(points, color, *, smooth=False):
+        canvas.create_line(*coordinates(points), fill=color, width=1, smooth=smooth, tags="corner")
+
+    if outcome == "victory":
+        # The darker ends fold back at each edge of the panel.
+        polygon(((64, 0), (28, 0), (0, 19), (0, 46)), "#715030")
+        polygon(((62, 0), (29, 0), (0, 20), (0, 44)), "#D69A4D")
+        polygon(((54, 0), (36, 0), (0, 25), (0, 38)), "#EAB968")
+        polygon(((47, 0), (40, 0), (0, 28), (0, 33)), "#F9D791")
+        polygon(((60, 0), (55, 0), (0, 39), (0, 42)), "#B77B39")
+        line(((30, 0), (0, 21)), "#FFE3A7")
+        line(((60, 0), (0, 43)), "#F1C777")
+        return
+
+    spokes = ((63, 1), (53, 9), (42, 20), (29, 31), (15, 39), (1, 45))
+    for endpoint in spokes:
+        line(((1, 1), endpoint), "#626C6B")
+    for ring in (0.33, 0.59, 0.85):
+        for (left_x, left_y), (right_x, right_y) in zip(spokes, spokes[1:]):
+            left = (left_x * ring, left_y * ring)
+            right = (right_x * ring, right_y * ring)
+            inward = ((left[0] + right[0]) * 0.44, (left[1] + right[1]) * 0.44)
+            line((left, inward, right), "#8C9693", smooth=True)
+
+
+class OutcomeOverlay:
+    TRANSPARENT = "#010203"
+    # The bright edge leads a wider, softer streak.
+    SHINE_COLORS = ("#37413A", "#50564A", "#70705A", "#999278",
+                    "#C0B38C", "#F6E3B1", "#FFF6CF", "#867B59", "#4D5141")
+
+    def __init__(self, card, viewport):
+        self.card = card
+        self.viewport = viewport
+        self.outcome = (None, None)
+        self.overlay = None
+        self.shine = None
+        self.bounds = None
+        self.sync_job = None
+        self.frame_job = None
+        self.played = False
+        self.supported = card.tk.call("tk", "windowingsystem") == "win32"
+        if self.supported:
+            root = card.winfo_toplevel()
+            root_binding = root.bind("<Configure>", self.root_moved, add="+")
+            for widget in (card, viewport):
+                widget.bind("<Map>", self.schedule, add="+")
+                widget.bind("<Configure>", self.schedule, add="+")
+                widget.bind("<Unmap>", self.hide, add="+")
+            card.bind("<Destroy>", lambda _event: root.unbind("<Configure>", root_binding), add="+")
+
+    def set_outcome(self, outcome, run_id):
+        current = outcome, run_id
+        if self.outcome == current:
+            return
+        self.outcome = current
+        self.played = False
+        self.stop_animation()
+        if outcome in ("victory", "defeat"):
+            self.bounds = None
+            self.schedule()
+        else:
+            self.hide()
+
+    def root_moved(self, event):
+        if event.widget is self.card.winfo_toplevel():
+            self.schedule()
+
+    def schedule(self, _event=None):
+        if (self.supported and self.sync_job is None and self.outcome[0] in ("victory", "defeat")
+                and self.card.winfo_ismapped() and self.viewport.winfo_ismapped()):
+            self.sync_job = self.card.after_idle(self.sync)
+
+    def hide(self, _event=None):
+        if self.sync_job is not None:
+            self.card.after_cancel(self.sync_job)
+            self.sync_job = None
+        self.stop_animation()
+        self.played = False
+        self.bounds = None
+        if self.overlay is not None:
+            self.overlay.master.destroy()
+            self.overlay = None
+
+    def stop_animation(self):
+        if self.frame_job is not None:
+            self.card.after_cancel(self.frame_job)
+            self.frame_job = None
+        if self.overlay is not None:
+            self.overlay.delete("confetti")
+        if self.shine is not None:
+            self.shine.master.destroy()
+            self.shine = None
+
+    def visible_bounds(self):
+        x, y = self.card.winfo_rootx(), self.card.winfo_rooty()
+        width, height = self.card.winfo_width(), self.card.winfo_height()
+        viewport_x, viewport_y = self.viewport.winfo_rootx(), self.viewport.winfo_rooty()
+        left, top = max(x, viewport_x), max(y, viewport_y)
+        right = min(x + width, viewport_x + self.viewport.winfo_width())
+        bottom = min(y + height, viewport_y + self.viewport.winfo_height())
+        return x, y, width, height, left, top, right, bottom
+
+    def sync(self):
+        self.sync_job = None
+        if not (self.card.winfo_ismapped() and self.viewport.winfo_ismapped()):
+            return
+        self.position_layers()
+        if self.overlay is not None and self.outcome[0] == "victory" and not self.played:
+            self.played = True
+            # Let the history selection and the first card paint settle before starting the clock.
+            self.frame_job = self.card.after(90, self.start_animation)
+
+    def position_layers(self):
+        bounds = self.visible_bounds()
+        if bounds == self.bounds:
+            return
+        self.bounds = bounds
+        x, y, width, height, left, top, right, bottom = bounds
+        if left >= right or top >= bottom:
+            for canvas in (self.overlay, self.shine):
+                if canvas is not None:
+                    canvas.master.withdraw()
+            return
+        if self.overlay is None:
+            self.overlay = self.add_layer(opacity=1)
+        for canvas in (self.overlay, self.shine):
+            if canvas is not None:
+                self.place_layer(canvas)
+        outcome = self.outcome[0]
+        size = WIN_CORNER_SIZE if outcome == "victory" else LOSS_CORNER_SIZE
+        self.overlay.delete("corner")
+        draw_outcome_corner(self.overlay, outcome, lower=False, size=size,
+                            origin=(x + width - size[0] - left, y - top))
+        draw_outcome_corner(self.overlay, outcome, lower=True, size=size,
+                            origin=(x - left, y + height - size[1] - top))
+
+    def place_layer(self, canvas):
+        _, _, _, _, left, top, right, bottom = self.bounds
+        popup = canvas.master
+        popup.geometry(f"{right - left}x{bottom - top}+{left}+{top}")
+        if popup.state() == "withdrawn":
+            popup.deiconify()
+
+    def add_layer(self, *, opacity):
+        popup = tk.Toplevel(self.card, background=self.TRANSPARENT, takefocus=False)
+        popup.withdraw()
+        popup.overrideredirect(True)
+        popup.transient(self.card.winfo_toplevel())
+        popup.wm_attributes("-transparentcolor", self.TRANSPARENT, "-alpha", opacity)
+        popup.bind("<Map>", self.make_passive, add="+")
+        canvas = tk.Canvas(popup, bg=self.TRANSPARENT, borderwidth=0, highlightthickness=0)
+        canvas.pack(fill="both", expand=True)
+        return canvas
+
+    def make_passive(self, event):
+        # Tk rebuilds the extended styles when its native wrapper is first mapped.
+        popup = event.widget
+        if not isinstance(popup, tk.Toplevel):
+            return
+
+        import ctypes
+        from ctypes import wintypes
+
+        # A Windows layered window with these styles leaves clicks and focus with the launcher.
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        ancestor = user32.GetAncestor
+        ancestor.argtypes = (wintypes.HWND, wintypes.UINT)
+        ancestor.restype = wintypes.HWND
+        get_style = user32.GetWindowLongW
+        get_style.argtypes = (wintypes.HWND, ctypes.c_int)
+        get_style.restype = wintypes.LONG
+        set_window_value = getattr(user32, "SetWindowLongPtrW", user32.SetWindowLongW)
+        set_window_value.argtypes = (wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t)
+        set_window_value.restype = ctypes.c_ssize_t
+        position = user32.SetWindowPos
+        position.argtypes = (wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
+                             ctypes.c_int, ctypes.c_int, wintypes.UINT)
+        position.restype = wintypes.BOOL
+
+        wrapper = ancestor(popup.winfo_id(), 2)  # GA_ROOT
+        owner = ancestor(self.card.winfo_toplevel().winfo_id(), 2)
+        exstyle = -20  # GWL_EXSTYLE
+        passive = 0x08000020  # WS_EX_NOACTIVATE | WS_EX_TRANSPARENT
+        # Tk's borderless wrapper can ignore wm transient on Windows.
+        for index, value in ((-8, owner), (exstyle, get_style(wrapper, exstyle) | passive)):
+            ctypes.set_last_error(0)
+            if not set_window_value(wrapper, index, value) and ctypes.get_last_error():
+                self.hide()
+                return
+
+        above = None
+        if self.shine is not None and popup is self.shine.master:
+            above = ancestor(self.overlay.master.winfo_id(), 2)
+        # SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
+        if not position(wrapper, above, 0, 0, 0, 0, 0x0213):
+            self.hide()
+
+    def start_animation(self):
+        self.frame_job = None
+        if self.overlay is None or self.overlay.master.state() == "withdrawn":
+            self.played = False
+            return
+        self.shine = self.add_layer(opacity=0.24)
+        self.place_layer(self.shine)
+
+        random = Random()
+        count = max(42, min(72, self.card.winfo_width() // 12))
+        self.particles = [
+            ((index + random.random()) / count, random.uniform(0, 0.62),
+             random.uniform(1.16, 1.54), random.uniform(-32, 32), random.uniform(6, 12))
+            for index in range(count)
+        ]
+        self.elapsed = 0
+        self.last_frame = monotonic()
+        self.animate()
+
+    def animate(self):
+        self.frame_job = None
+        now = monotonic()
+        self.elapsed += min(now - self.last_frame, 0.06)
+        self.last_frame = now
+        self.position_layers()
+        x, y, width, height, left, top, right, bottom = self.bounds
+        if self.elapsed >= 2.18 or left >= right or top >= bottom:
+            self.stop_animation()
+            return
+
+        offset_x, offset_y = left - x, top - y
+        self.draw_shine(self.shine, self.elapsed, width, height, offset_x, offset_y)
+        self.overlay.delete("confetti")
+        for index, (position, delay, travel, drift, length) in enumerate(self.particles):
+            progress = (self.elapsed - delay) / travel
+            if 0 <= progress <= 1:
+                px = width * position + progress * drift - offset_x
+                py = (height + 16) * progress - 8 - offset_y
+                sway = (progress * 40 + index * 2) % 14 - 7
+                self.overlay.create_line(px, py, px + sway, py + length, width=3,
+                                         fill=CONFETTI_COLORS[index % len(CONFETTI_COLORS)], tags="confetti")
+        self.frame_job = self.card.after(25, self.animate)
+
+    def draw_shine(self, canvas, elapsed, width, height, offset_x, offset_y):
+        canvas.delete("all")
+        progress = (elapsed - 0.12) / 0.95
+        if not 0 <= progress <= 1:
+            return
+        tilt = height * 0.51
+        band = max(65, min(width * 0.15, 132))
+        # Sweep the whole streak in from beyond the left edge and out past the right.
+        start = (width + tilt + band) * progress - band - tilt - offset_x
+        step = band / len(self.SHINE_COLORS)
+        for index, color in enumerate(self.SHINE_COLORS):
+            x = start + index * step
+            canvas.create_polygon(x + tilt, -offset_y, x + tilt + step, -offset_y,
+                                  x + step, height - offset_y, x, height - offset_y, fill=color)
+
+
 class RunAnalysis:
     def __init__(self, parent, launcher):
         self.launcher = launcher
@@ -1043,7 +1313,6 @@ class RunAnalysis:
         scrollbar = ttk.Scrollbar(parent, orient="vertical", command=self.viewport.yview,
                                   style="History.Vertical.TScrollbar")
         scrollbar.grid(row=0, column=1, sticky="ns")
-        self.viewport.configure(yscrollcommand=scrollbar.set)
         area = ttk.Frame(self.viewport, padding=(6, 7, 6, 7))
         frame_id = self.viewport.create_window(0, 0, window=area, anchor="nw")
         self.viewport.bind("<Configure>", lambda event: self.viewport.itemconfigure(frame_id, width=event.width))
@@ -1056,8 +1325,23 @@ class RunAnalysis:
         self.portrait_view.pack(side="left", padx=(0, 15))
         card = ttk.Frame(player, style="Panel.TFrame")
         card.pack(side="left", fill="both", expand=True)
-        self.player_name = ttk.Label(card, style="PlayerName.TLabel")
-        self.player_name.pack(anchor="w")
+        title_row = ttk.Frame(card, style="Panel.TFrame")
+        title_row.pack(fill="x")
+        self.player_name = ttk.Label(title_row, style="PlayerName.TLabel")
+        self.player_name.pack(side="left")
+        self.outcome = ttk.Label(title_row, style="Section.TLabel", font=launcher.fonts["title"])
+        self.decorated_outcome = None
+        self.dimmed_portraits = {}
+        self.outcome_overlay = OutcomeOverlay(player, self.viewport)
+        self.outcome_corners = [] if self.outcome_overlay.supported else [
+            tk.Canvas(player, bg=PANEL, borderwidth=0, highlightthickness=0) for _ in range(2)
+        ]
+
+        def analysis_scrolled(first, last):
+            scrollbar.set(first, last)
+            self.outcome_overlay.schedule()
+
+        self.viewport.configure(yscrollcommand=analysis_scrolled)
         self.player_progress = ttk.Label(card, style="Caption.TLabel", compound="left")
         self.player_progress.pack(anchor="w")
         health_row = ttk.Frame(card, style="Panel.TFrame")
@@ -1074,12 +1358,14 @@ class RunAnalysis:
         self.recent_hp.bind("<Configure>", self.draw_player_health)
         resources = ttk.Frame(card, style="Panel.TFrame")
         resources.pack(fill="x", pady=(1, 0))
+        resources.grid_rowconfigure(0, minsize=max(16, launcher.fonts["small"].metrics("linespace")) + 2)
         self.resource_labels = {}
         for index, key in enumerate(("gold", "block", "energy")):
             badge = ttk.Label(resources, style="Caption.TLabel", compound="left")
             badge.grid(row=0, column=index, sticky="w", padx=(0, 16))
             self.resource_labels[key] = badge
         self.potion_strip = PotionStrip(card, launcher)
+        self.hero_frames = (player, card, title_row, health_row, resources, self.potion_strip.label.master)
         self.inventory = RunInventory(area, launcher)
 
         summary = ttk.Frame(area)
@@ -1143,6 +1429,7 @@ class RunAnalysis:
                                for provider, games in groups.items()]
         wins = sum(w for _, w, _ in self.provider_rates)
         total = sum(n for _, _, n in self.provider_rates)
+        average_floor, floor_sample = self.stats.recent_average_floor(complete) if self.stats else (None, 0)
         self.timeline = []
         estimate_wins = estimate_total = 0
         player = {}
@@ -1162,7 +1449,8 @@ class RunAnalysis:
 
         metrics = [
             ("observed_rate", self.rate(wins, total), self.text("wins_sample", wins=wins, total=total)),
-            ("finished_ai", str(total), self.text("wins_losses", wins=wins, losses=total - wins)),
+            ("recent_average_floor", f"{average_floor:.1f}" if average_floor is not None else "—",
+             self.text("recent_floor_sample", runs=floor_sample)),
             ("stage_estimate", self.rate(estimate_wins, estimate_total),
              self.text("wins_sample", wins=estimate_wins, total=estimate_total) if estimate_total
              else self.text("no_estimate" if folder else "no_selected_run")),
@@ -1183,6 +1471,7 @@ class RunAnalysis:
         self.character = character if character in CHARACTERS else ""
         name = character_names(self.launcher.language)[CHARACTERS.index(character)] if self.character else "—"
         self.player_name.configure(text=name)
+        self.show_outcome(info.get("status"), info.get("run_id") or info.get("started"))
         health, maximum = player.get("hp"), player.get("max_hp")
         has_health = type(health) is int and type(maximum) is int and maximum > 0
         art = self.launcher.art
@@ -1220,6 +1509,49 @@ class RunAnalysis:
             self.portrait_view.create_oval(36, 29, 70, 63, fill=HOVER, outline=BORDER, width=2)
             self.portrait_view.create_arc(21, 66, 85, 105, start=0, extent=180, outline=BORDER, fill=HOVER, width=2)
 
+    def show_outcome(self, outcome, run_id):
+        finished = outcome in ("victory", "defeat")
+        lost = outcome == "defeat"
+        self.outcome.configure(text=self.text("badge_" + outcome) if finished else "",
+                               foreground="#DF948A" if lost else ACCENT)
+        if outcome != self.decorated_outcome:
+            self.decorated_outcome = outcome
+            self.tint_player_card(lost)
+            if finished:
+                self.outcome.place(relx=1, x=6 - WIN_CORNER_SIZE[0], rely=0.5, anchor="e")
+            else:
+                self.outcome.place_forget()
+            size = LOSS_CORNER_SIZE if lost else WIN_CORNER_SIZE
+            for corner, lower in zip(self.outcome_corners, (False, True)):
+                if not finished:
+                    corner.place_forget()
+                    continue
+                corner.configure(width=size[0], height=size[1], bg=DIMMED_PANEL if lost else PANEL)
+                corner.delete("corner")
+                draw_outcome_corner(corner, outcome, lower=lower, size=size)
+                corner.place(relx=0 if lower else 1, rely=1 if lower else 0,
+                             anchor="sw" if lower else "ne", bordermode="ignore")
+                tk.Misc.tkraise(corner)
+        self.outcome_overlay.set_outcome(outcome, run_id)
+
+    def tint_player_card(self, lost):
+        panel = DIMMED_PANEL if lost else PANEL
+        field = DIMMED_FIELD if lost else FIELD
+        border = DIMMED_BORDER if lost else BORDER
+        strong = DIMMED_TEXT if lost else TEXT_COLOR
+        quiet = DIMMED_MUTED if lost else MUTED
+        for frame in self.hero_frames:
+            frame.configure(style="Dimmed.Panel.TFrame" if lost else "Panel.TFrame")
+        for label in (self.player_name, self.player_hp):
+            label.configure(background=panel, foreground=strong)
+        for label in (self.player_progress, self.hp_caption, self.potion_strip.label, *self.resource_labels.values()):
+            label.configure(background=panel, foreground=quiet)
+        self.outcome.configure(background=panel)
+        self.portrait_view.configure(bg=field, highlightbackground=border)
+        self.health_bar.configure(bg=field)
+        self.recent_hp.configure(bg=panel)
+        self.potion_strip.view.configure(bg=panel)
+
     def is_live(self, info):
         activity = info.get("last_updated") if info.get("source") == "steam_mod" else info.get("started")
         started = self.stats.timestamp(activity) if self.stats else None
@@ -1230,21 +1562,38 @@ class RunAnalysis:
         bar, recent = self.health_bar, self.recent_hp
         bar.delete("all")
         recent.delete("all")
+        lost = self.decorated_outcome == "defeat"
         if self.hp_ratio is not None:
-            bar.create_rectangle(0, 0, bar.winfo_width() * self.hp_ratio, bar.winfo_height(), fill="#E99990", outline="")
+            health = "#8D7775" if lost else "#E99990"
+            bar.create_rectangle(0, 0, bar.winfo_width() * self.hp_ratio, bar.winfo_height(), fill=health, outline="")
         width, height = recent.winfo_width(), recent.winfo_height()
         points = self.timeline[-22:]
         if width < 20 or len(points) < 2:
             return
-        recent.create_line(0, height / 2, width, height / 2, fill=BORDER)
+        recent.create_line(0, height / 2, width, height / 2, fill=DIMMED_BORDER if lost else BORDER)
         coords = [(3 + i * (width - 7) / (len(points) - 1), 2 + (height - 5) * (1 - hp / 100))
                   for i, (_, hp, _) in enumerate(points)]
-        recent.create_line(*[dimension for p in coords for dimension in p], fill=ACCENT, width=2)
+        trace = DIMMED_MUTED if lost else ACCENT
+        recent.create_line(*[dimension for p in coords for dimension in p], fill=trace, width=2)
         x, y = coords[-1]
-        recent.create_oval(x-2, y-2, x+2, y+2, fill=ACCENT, outline="")
+        recent.create_oval(x-2, y-2, x+2, y+2, fill=trace, outline="")
 
     def player_portrait(self, character):
-        return self.launcher.art.character_image(character, (97, 116), portrait=True) if character else None
+        portrait = self.launcher.art.character_image(character, (97, 116), portrait=True) if character else None
+        if portrait is None or self.decorated_outcome != "defeat":
+            return portrait
+        key = str(portrait)
+        if key not in self.dimmed_portraits:
+            try:
+                from PIL import ImageOps, ImageTk
+
+                original = ImageTk.getimage(portrait).convert("RGBA")
+                muted = ImageOps.colorize(ImageOps.grayscale(original), black="#141717", white="#ADB2B0")
+                muted.putalpha(original.getchannel("A"))
+                self.dimmed_portraits[key] = ImageTk.PhotoImage(muted, master=self.portrait_view)
+            except (ImportError, AttributeError, OSError, ValueError, tk.TclError):
+                self.dimmed_portraits[key] = portrait
+        return self.dimmed_portraits[key]
 
     @staticmethod
     def rate(wins, total):
@@ -1334,6 +1683,39 @@ class RunAnalysis:
         self.notes.configure(state="disabled")
 
 
+def recycle_run_archive(archive, window_id):
+    import ctypes
+    from ctypes import wintypes
+
+    class FileOperation(ctypes.Structure):
+        if ctypes.sizeof(ctypes.c_void_p) == 4:
+            _pack_ = 1  # shellapi.h uses byte packing on 32-bit Windows.
+        _fields_ = [
+            ("window", wintypes.HWND),
+            ("operation", wintypes.UINT),
+            ("source", wintypes.LPCWSTR),
+            ("destination", wintypes.LPCWSTR),
+            ("flags", wintypes.WORD),
+            ("aborted", wintypes.BOOL),
+            ("mappings", wintypes.LPVOID),
+            ("progress_title", wintypes.LPCWSTR),
+        ]
+
+    source = ctypes.create_unicode_buffer(str(archive) + "\0")  # Shell expects two trailing nulls.
+    operation = FileOperation(window=window_id, operation=3,  # FO_DELETE
+                              source=ctypes.cast(source, wintypes.LPCWSTR),
+                              flags=0x4054)  # FOF_WANTNUKEWARNING | FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT
+    shell_delete = ctypes.windll.shell32.SHFileOperationW
+    shell_delete.argtypes = (ctypes.POINTER(FileOperation),)
+    shell_delete.restype = ctypes.c_int
+    status = shell_delete(ctypes.byref(operation))
+    if operation.aborted:
+        return False
+    if status or archive.exists():
+        raise OSError(f"Unable to recycle run archive (shell status {status:#x})")
+    return True
+
+
 class RunHistory:
     def __init__(self, launcher):
         self.launcher = launcher
@@ -1348,12 +1730,14 @@ class RunHistory:
 
         toolbar = ttk.Frame(self.window)
         toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 12))
-        self.heading = ttk.Label(toolbar, style="Title.TLabel")
-        self.heading.pack(side="left")
+        self.delete_button = ttk.Button(toolbar, command=self.delete_run, state="disabled")
+        self.delete_button.pack(side="right")
         self.folder_button = ttk.Button(toolbar, command=self.open_folder)
-        self.folder_button.pack(side="right")
+        self.folder_button.pack(side="right", padx=(0, 7))
         self.refresh_button = ttk.Button(toolbar, command=self.refresh)
         self.refresh_button.pack(side="right", padx=(0, 7))
+        self.heading = ttk.Label(toolbar, style="Title.TLabel")
+        self.heading.pack(side="left", fill="x", expand=True)
 
         sidebar = launcher.history_drawer
         self.tree = ttk.Treeview(sidebar, show="tree", selectmode="browse", style="History.Treeview")
@@ -1363,16 +1747,15 @@ class RunHistory:
                                     style="History.Vertical.TScrollbar")
         tree_scroll.pack(side="right", fill="y")
         self.tree.configure(yscrollcommand=tree_scroll.set)
-        self.tree.bind("<<TreeviewSelect>>", self.show_record)
+        self.tree.bind("<<TreeviewSelect>>", self.show_detail)
         for event in ("<<TreeviewOpen>>", "<<TreeviewClose>>"):
             self.tree.bind(event, lambda _event: self.launcher.root.after_idle(self.launcher.fit_drawer))
 
         tab_bar = ttk.Frame(self.window)
         tab_bar.grid(row=1, column=0, sticky="w", pady=(0, 7))
         tab_bar.grid_columnconfigure((0, 1, 2), weight=1, uniform="detail_tabs")
-        self.detail_tab = "record_tab"
         self.detail_buttons = {}
-        for index, tab in enumerate(("record_tab", "analysis_tab", "map_tab")):
+        for index, tab in enumerate(("analysis_tab", "map_tab", "record_tab")):
             button = ttk.Button(tab_bar, width=13, command=lambda tab=tab: self.select_detail(tab))
             button.grid(row=0, column=index, sticky="ew", padx=(0, 5))
             self.detail_buttons[tab] = button
@@ -1396,8 +1779,7 @@ class RunHistory:
         self.body.tag_configure("step", font=launcher.fonts["small_bold"], foreground=ACCENT, spacing1=12)
         self.body.tag_configure("reason", foreground=MUTED, spacing3=6)
         self.body.tag_configure("player", foreground=ACCENT, spacing1=5, spacing3=6)
-        self.select_detail("record_tab")
-        self.refresh()
+        self.select_detail("analysis_tab")
         self.window.bind("<Destroy>", self.stop, add="+")
         self.tick()
 
@@ -1439,7 +1821,8 @@ class RunHistory:
                 panel.grid_remove()
             style = "Current.DetailTab.TButton" if name == tab else "DetailTab.TButton"
             self.detail_buttons[name].configure(style=style)
-        self.show_detail()
+        if self.signature is not None:
+            self.show_detail()
 
     def label(self, info):
         provider = info.get("provider", "manual")
@@ -1458,16 +1841,17 @@ class RunHistory:
         self.heading.configure(text=title)
         self.refresh_button.configure(text=self.launcher.text("refresh"))
         self.folder_button.configure(text=self.launcher.text("open_folder"))
+        self.delete_button.configure(text=self.launcher.text("delete_run"))
         for key, button in self.detail_buttons.items():
             button.configure(text=self.launcher.text(key))
         previous = self.tree.selection()
         old_rows = self.tree.get_children()
         expanded = {key for key in old_rows if self.tree.item(key, "open")}
-        self.tree.delete(*self.tree.get_children())
+        self.tree.delete(*old_rows)
         self.entries = {}
-        runs = sorted(HISTORY_DIR.glob("*/run.json"), reverse=True)
-        for index, path in enumerate(runs):
-            info = self.read_metadata(path)
+        runs = [(path, self.read_metadata(path)) for path in HISTORY_DIR.glob("*/run.json")]
+        runs.sort(key=lambda record: self.activity_time(record[1]), reverse=True)
+        for path, info in runs:
             started = info.get("started")
             if not isinstance(started, str) or not started:
                 continue
@@ -1475,7 +1859,7 @@ class RunHistory:
             key = str(folder)
             started = started[5:16].replace("T", " ")
             self.tree.insert("", "end", iid=key, text=f"{started}  {self.label(info)}",
-                             open=key in expanded or (index == 0 and not old_rows))
+                             open=key in expanded)
             self.entries[key] = (folder, info, None)
             for scene in sorted(folder.glob("*/scene.json")):
                 scene_info = self.read_metadata(scene)
@@ -1496,10 +1880,9 @@ class RunHistory:
                 if current:
                     key = current
                     self.followed_start = started
-                    self.tree.item(key, open=True)
             self.tree.selection_set(key)
             self.tree.see(key)
-        self.show_record()
+        self.show_detail()
         self.launcher.fit_drawer()
 
     @staticmethod
@@ -1510,7 +1893,15 @@ class RunHistory:
         except (OSError, ValueError):
             return {}
 
-    def show_record(self, _event=None):
+    @staticmethod
+    def activity_time(info):
+        activity = info.get("last_updated") or info.get("ended") or info.get("started")
+        try:
+            return datetime.fromisoformat(activity).timestamp()
+        except (ValueError, TypeError, OSError, OverflowError):
+            return 0
+
+    def show_record(self):
         selected = self.tree.selection()
         key = selected[0] if selected and selected[0] in self.entries else None
         top = self.body.index("@0,0")
@@ -1525,7 +1916,10 @@ class RunHistory:
             self.body.insert("end", title + "\n", "heading")
             messages = TEXT[self.launcher.language]
             status = messages.get(f"status_{info.get('status')}", messages["status_partial"])
-            details = " · ".join(value for value in (info.get("model"), status) if isinstance(value, str) and value)
+            identifier = info.get("run_id")
+            run_id = f"ID {identifier}" if isinstance(identifier, str) and identifier else None
+            details = " · ".join(value for value in (info.get("model"), status, run_id)
+                                 if isinstance(value, str) and value)
             self.body.insert("end", details + "\n\n", "reason")
             try:
                 transcript = (folder / "transcript.txt").read_text(encoding="utf-8", errors="replace")
@@ -1552,13 +1946,20 @@ class RunHistory:
                 self.body.yview(top)
         self.transcript_key = key
         self.body.configure(state="disabled")
-        self.show_detail()
 
-    def show_detail(self):
-        if self.detail_tab == "record_tab":
-            return
+    def selected_entry(self):
         selected = self.tree.selection()
-        folder, info, scene = self.entries.get(selected[0], (None, {}, None)) if selected else (None, {}, None)
+        return self.entries.get(selected[0], (None, {}, None)) if selected else (None, {}, None)
+
+    def can_delete(self, folder, info, scene):
+        return os.name == "nt" and folder is not None and scene is None and not self.analysis.is_live(info)
+
+    def show_detail(self, _event=None):
+        folder, info, scene = self.selected_entry()
+        self.delete_button.state(["!disabled" if self.can_delete(folder, info, scene) else "disabled"])
+        if self.detail_tab == "record_tab":
+            self.show_record()
+            return
         run = folder.parent if scene else folder
         if self.detail_tab == "analysis_tab":
             self.analysis.metrics_for(run, info, HISTORY_DIR)
@@ -1572,11 +1973,36 @@ class RunHistory:
             self.tree.selection_set(key)
             self.tree.see(key)
             self.select_detail("record_tab")
-            self.show_record()
+
+    def delete_run(self):
+        folder, info, scene = self.selected_entry()
+        if not self.can_delete(folder, info, scene):
+            return
+
+        title = self.launcher.text("delete_run")
+        label = self.tree.item(str(folder), "text")
+        if not messagebox.askokcancel(title, self.launcher.text("delete_run_confirm", run=label),
+                                      icon="warning", default=messagebox.CANCEL, parent=self.window):
+            return
+
+        try:
+            archive_root = HISTORY_DIR.resolve(strict=True)
+            archive = folder.resolve(strict=True)
+            if archive != archive_root / folder.name:
+                raise OSError("Path is not a direct run archive")
+            current = self.read_metadata(archive / "run.json")
+            if not current or current.get("started") != info.get("started") or self.analysis.is_live(current):
+                raise OSError("Run archive changed or is active")
+            if not recycle_run_archive(archive, self.launcher.root.winfo_id()):
+                return
+        except (OSError, RuntimeError):
+            messagebox.showerror(title, self.launcher.text("delete_run_failed"), parent=self.window)
+            return
+        self.refresh()
 
     def open_folder(self):
-        selected = self.tree.selection()
-        path = self.entries[selected[0]][0] if selected and selected[0] in self.entries else HISTORY_DIR
+        folder, _, _ = self.selected_entry()
+        path = folder or HISTORY_DIR
         try:
             if path == HISTORY_DIR:
                 path.mkdir(exist_ok=True)

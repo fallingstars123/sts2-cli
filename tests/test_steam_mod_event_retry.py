@@ -3,7 +3,9 @@ import json
 import os
 import sys
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "agent"))
 
@@ -55,6 +57,31 @@ def test_event_outcome_records_the_choice_and_resource_changes():
     assert note == {"choice": "Hold On", "effect": "Lose 6 HP.", "hp_change": -6, "gold_change": 30}
 
 
+def test_regent_whirlpool_selects_strike_and_confirms_only_the_replay_preview():
+    strike = {"id": "STRIKE_REGENT", "description": "Deal 6 damage."}
+    defend = {"id": "DEFEND_REGENT", "description": "Gain 5 Block."}
+    select_strike = {"id": "strike", "kind": "toggle_card_choice",
+                     "detail": {"card": strike, "selected": False}}
+    select_defend = {"id": "defend", "kind": "toggle_card_choice",
+                     "detail": {"card": defend, "selected": False}}
+    state = {
+        "screen": "card_selection",
+        "run": {**RUN, "character": "CHARACTER.REGENT", "room_event_id": "SPIRALING_WHIRLPOOL"},
+        "state": {"mode": "NDeckEnchantSelectScreen", "min_select": 1, "max_select": 1, "selected_count": 0},
+        "actions": [select_defend, select_strike],
+    }
+    assert agent._forced_action(state) == select_strike
+
+    confirm = {"id": "confirm", "kind": "confirm_card_choice", "detail": {}}
+    state["actions"] = [confirm, {"id": "undo", "kind": "undo_or_cancel_card_choice", "detail": {}}]
+    state["state"]["selected_count"] = 1
+    for keyword in ("Replay 1.", "重放1。"):
+        state["state"]["preview"] = [strike, {**strike, "description": strike["description"] + "\n" + keyword}]
+        assert agent._forced_action(state) == confirm
+    state["state"]["preview"] = [defend, {**defend, "description": "Gain 5 Block.\nReplay 1."}]
+    assert agent._forced_action(state) is None
+
+
 def test_enchantment_review_distinguishes_generated_shivs_from_direct_damage():
     card = {"id": "LEADING_STRIKE", "title": "Leading Strike",
             "description": "Deal 3 damage.\nAdd 2 [gold]Shivs[/gold] into your [gold]Hand[/gold]."}
@@ -100,3 +127,62 @@ def test_retry_failure_only_stops_the_caller_awaiting_that_retry():
         assert str(failure) == error
     else:
         raise AssertionError("The waiting caller did not receive the retry failure")
+
+
+def test_transition_rejection_waits_for_new_state_without_repeating_action(tmp_path):
+    old = {**event(True, actions=[PROCEED]), "state_id": "daily:2:old"}
+    new = {"screen": "settlement", "state_id": "daily:2:new", "actions": [],
+           "run": RUN, "state": {"outcome": "victory", "native_history": True}}
+    bridge = Mock()
+    bridge.tool.side_effect = agent.SessionError("unsupported")
+    memory = Mock(identity=None)
+    memory.context.return_value = {}
+    options = SimpleNamespace(profile=None, checkpoint="run", journal_dir=tmp_path / "journal",
+                              archive_dir=tmp_path / "archive", max_actions=3, from_room=False,
+                              experience=tmp_path / "experience.json", no_review=True)
+    with patch.object(agent, "read_ready", side_effect=[old, new]), \
+            patch.object(agent, "SteamModMemory", return_value=memory), patch.object(agent, "sleep"):
+        assert agent.play(bridge, None, options) == 0
+    bridge.tool.assert_called_once_with("perform_action", state_id="daily:2:old", action_id=PROCEED["id"])
+
+
+def test_entering_battle_ignores_a_previous_room_at_the_new_floor():
+    new_floor = {**RUN, "floor": RUN["floor"] + 1}
+    old_map = {"screen": "map", "state": {}, "run": RUN, "actions": []}
+    old_treasure = {"screen": "treasure", "state": {}, "run": new_floor,
+                    "actions": [{"id": "room.proceed", "kind": "proceed", "detail": {}}]}
+    combat = {"screen": "combat", "state": {"turn": 1}, "run": new_floor,
+              "actions": [{"id": "end_turn", "kind": "end_turn", "detail": {}}]}
+    bridge = Mock()
+    bridge.tool.side_effect = [old_treasure, combat]
+    with patch.object(agent, "sleep"):
+        assert agent.read_ready(bridge, after=old_map, entering_battle=True) == combat
+
+
+
+@pytest.mark.parametrize(("screen", "kind"), [("shop", "open_shop"), ("card_selection", "toggle_card_choice")])
+def test_entering_shop_waits_for_shop_or_its_card_selection(screen, kind):
+    new_floor = {**RUN, "floor": RUN["floor"] + 1}
+    old_map = {"screen": "map", "state": {}, "run": RUN, "actions": []}
+    stale_event = {"screen": "event", "state": {}, "run": new_floor, "actions": [PROCEED]}
+    ready = {"screen": screen, "state": {}, "run": new_floor,
+             "actions": [{"id": "ready", "kind": kind, "detail": {}}]}
+    bridge = Mock()
+    bridge.tool.side_effect = [stale_event, ready]
+    with patch.object(agent, "sleep"):
+        assert agent.read_ready(bridge, after=old_map, entering_shop=True) == ready
+
+
+def test_event_page_counts_as_progress_with_identical_continue_buttons():
+    proceed = {"id": "event.choose.0", "kind": "choose_event_option",
+               "detail": {"title": "Continue", "description": "", "locked": False, "proceed": False}}
+    before = event(False, actions=[proceed])
+    before["state"]["page_key"] = "MUSEUM.pages.INTRO"
+    after = {**before, "state": {**before["state"], "page_key": "MUSEUM.pages.NEXT"}}
+    assert agent._forced_action(before) == proceed
+    assert not agent.was_progress(before, before)
+    assert agent.was_progress(before, after)
+    bridge = Mock()
+    bridge.tool.side_effect = [before, after]
+    with patch.object(agent, "sleep"):
+        assert agent.read_ready(bridge, after=before) == after

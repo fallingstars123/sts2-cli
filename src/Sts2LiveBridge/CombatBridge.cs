@@ -4,6 +4,7 @@ using Godot;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
@@ -153,6 +154,10 @@ internal static class CombatBridge
                 act = runState.CurrentActIndex + 1, floor = runState.TotalFloor, encounter, turn,
                 description = "Save and Quit, then Continue from the native checkpoint at the start of this fight.",
             }, () => CanAct(room, combat, player, turn) && RoomRetry.BeginCombat(runState, encounter)));
+            actions.Add(new LiveAction("save_and_quit_combat", "save_and_quit_combat", new
+            {
+                description = "Use Save and Quit and leave the game at the main menu.",
+            }, () => CanAct(room, combat, player, turn) && RoomRetry.BeginCombat(runState, encounter, resume: false)));
         }
 
         var enemies = targets.Select((enemy, index) => new
@@ -190,6 +195,8 @@ internal static class CombatBridge
             hand,
             legal_card_indices = legalCardIndices.ToArray(),
             ringing = ReadRinging(player, combat),
+            arrows_available = ReadArrows(player, targets),
+            active_melodies = ReadMelodies(player),
             enemies,
             potions,
             player = new
@@ -525,6 +532,28 @@ internal static class CombatBridge
             return null;
         var tip = affliction.HoverTip;
         return new { id = affliction.Id.Entry, name = tip.Title, affliction.Amount, description = tip.Description };
+    }
+
+    // The Fool's Shoot cards need an available Arrow; an Arrow impaled in an enemy returns only
+    // after enough hits (IMPALED_POWER.display_amount). Null when no Arrows are in play.
+    private static int? ReadArrows(Player player, IEnumerable<Creature> enemies)
+    {
+        var available = ArrowCmd.GetAvailableArrowCount(player);
+        return available > 0 || ArrowCmd.PlayerHasAnyArrows(player)
+            || enemies.Any(enemy => ArrowCmd.CreatureIsImpaledByPlayersArrow(enemy, player))
+            ? available : null;
+    }
+
+    private static string[]? ReadMelodies(Player player)
+    {
+        if (player.Character.Id.Entry != "FOOL")
+            return null;
+
+        var melodies = new List<string>(3);
+        if (MelodyCmd.PlayedKiThisTurn(player)) melodies.Add("Ki");
+        if (MelodyCmd.PlayedChoThisTurn(player)) melodies.Add("Cho");
+        if (MelodyCmd.PlayedWahThisTurn(player)) melodies.Add("Wah");
+        return melodies.ToArray();
     }
 
     private static object? ReadRinging(Player player, CombatState combat)

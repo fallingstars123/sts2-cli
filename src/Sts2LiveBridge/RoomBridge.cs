@@ -2,9 +2,11 @@ using System.Reflection;
 using Godot;
 using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Merchant;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
@@ -44,15 +46,15 @@ internal static class RoomBridge
         return screen switch
         {
             NMapScreen map when IsShown(map) => Map(map, run),
-            NRewardsScreen rewards when IsShown(rewards) => Rewards(rewards),
+            NRewardsScreen rewards when IsShown(rewards) => Rewards(rewards, run.Players[0]),
             NCardRewardSelectionScreen cardReward when IsShown(cardReward) => CardRewardChoices(cardReward),
             NCardGridSelectionScreen cardGrid when IsShown(cardGrid) => CardGrid(cardGrid),
             NChooseACardSelectionScreen cardChoice when IsShown(cardChoice) => SingleCardChoice(cardChoice),
             NChooseABundleSelectionScreen bundleChoice when IsShown(bundleChoice) => BundleChoice(bundleChoice),
-            NEventRoom eventRoom when IsShown(eventRoom) => EventRoom(eventRoom, run),
-            NRestSiteRoom restSite when IsShown(restSite) => RestSite(restSite),
-            NTreasureRoom treasure when IsShown(treasure) => Treasure(treasure),
-            NMerchantRoom merchant when IsShown(merchant) => MerchantRoom(merchant),
+            NEventRoom eventRoom when IsShown(eventRoom) && run.CurrentRoom is EventRoom => EventRoom(eventRoom, run),
+            NRestSiteRoom restSite when IsShown(restSite) && run.CurrentRoom is RestSiteRoom => RestSite(restSite),
+            NTreasureRoom treasure when IsShown(treasure) && run.CurrentRoom is TreasureRoom => Treasure(treasure),
+            NMerchantRoom merchant when IsShown(merchant) && run.CurrentRoom is MerchantRoom => MerchantRoom(merchant),
             NMerchantInventory inventory when IsShown(inventory) => ShopInventory(inventory),
             NFtue tutorial when IsShown(tutorial) => Tutorial(tutorial),
             NCombatRoom combat when IsShown(combat) && !CombatManager.Instance.IsInProgress &&
@@ -131,7 +133,7 @@ internal static class RoomBridge
         point.State == MapPointState.Travelable && map.IsNodeOnScreen(point) &&
         (point.Point.coord.row != 0 || SaveManager.Instance.SeenFtue("map_select_ftue"));
 
-    private static LiveSnapshot Rewards(NRewardsScreen screen)
+    private static LiveSnapshot Rewards(NRewardsScreen screen, Player player)
     {
         var rewards = Descendants<NRewardButton>(screen)
             .Where(button => IsShown(button) && button.Reward is { IsPopulated: true }).ToArray();
@@ -142,6 +144,29 @@ internal static class RoomBridge
             var button = rewards[index];
             if (Usable(button))
                 actions.Add(Click(screen, button, $"reward.claim.{index}", "claim_reward", details[index]));
+        }
+        if (rewards.Any(button => Usable(button) && button.Reward is PotionReward) &&
+            player.CanUseOrRemovePotions && player.PotionSlots.All(potion => potion is not null))
+        {
+            foreach (var entry in CombatBridge.ReadPotions(player))
+            {
+                var potion = player.GetPotionAtSlotIndex(entry.Index);
+                if (potion is null || potion.IsQueued || potion.HasBeenRemovedFromState)
+                    continue;
+                actions.Add(new LiveAction($"potion.discard.{entry.Index}", "discard_potion", new
+                {
+                    PotionIndex = entry.Index,
+                    PotionId = entry.Id,
+                }, () =>
+                {
+                    if (!player.CanUseOrRemovePotions ||
+                        !ReferenceEquals(player.GetPotionAtSlotIndex(entry.Index), potion) ||
+                        potion.IsQueued || potion.HasBeenRemovedFromState)
+                        return false;
+                    _ = PotionCmd.Discard(potion);
+                    return true;
+                }));
+            }
         }
         var proceed = screen.GetNodeOrNull<NProceedButton>("ProceedButton");
         if (proceed is not null && Usable(proceed))
@@ -304,9 +329,18 @@ internal static class RoomBridge
         }, actions);
     }
 
-    private static object[] VisiblePreview(Control screen) => Descendants<NPreviewCardHolder>(screen)
-        .Where(holder => IsShown(holder) && holder.CardModel != null)
-        .Select(holder => DescribeCard(holder.CardModel!)).ToArray();
+    private static object[] VisiblePreview(Control screen)
+    {
+        // Random replacements cycle on the right with hover disabled. They are not the result.
+        var transformAfter = screen is NDeckTransformSelectScreen
+            ? Descendants<NTransformPreview>(screen).FirstOrDefault()?.GetNodeOrNull<Control>("%After")
+            : null;
+        return Descendants<NPreviewCardHolder>(screen)
+            .Where(holder => IsShown(holder) && holder.CardModel != null &&
+                (transformAfter is null || holder.GetParent() != transformAfter ||
+                    holder.Hitbox.MouseFilter != Control.MouseFilterEnum.Ignore))
+            .Select(holder => DescribeCard(holder.CardModel!)).ToArray();
+    }
 
     private static void AddSelectionConfirmation(IScreenContext owner, Control screen, List<LiveAction> actions)
     {
@@ -372,6 +406,7 @@ internal static class RoomBridge
         {
             event_id = eventId,
             resolved,
+            page_key = buttons.FirstOrDefault()?.Event.Description?.LocEntryKey,
             dialogue_line = ancientDialogueLine,
             options,
         }, actions);

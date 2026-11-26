@@ -83,8 +83,8 @@ def _steam_account_root():
     return candidates.pop()
 
 
-def _identity(saved, profile, *, history):
-    if saved.get("platform_type") != "steam" or saved.get("game_mode") != "standard":
+def _identity(saved, profile, *, history, game_modes):
+    if saved.get("platform_type") != "steam" or saved.get("game_mode") not in game_modes:
         return None
     players = saved.get("players")
     if not isinstance(players, list) or len(players) != 1 or not isinstance(players[0], dict):
@@ -103,6 +103,8 @@ def _identity(saved, profile, *, history):
 
 class SteamRunEvidence:
     """Read a single designated profile. Does not edit saves or select a profile."""
+
+    game_modes = frozenset({"standard"})
 
     def __init__(self, expected_profile: int | None = None, *, account_root: str | Path | None = None):
         if expected_profile is not None and (type(expected_profile) is not int or expected_profile not in (1, 2, 3)):
@@ -130,7 +132,7 @@ class SteamRunEvidence:
         """Return the official last checkpoint, if the selected run has one."""
         self.require_profile()
         saved = _read_save(self.saves / "current_run.save")
-        identity = _identity(saved, self.profile, history=False)
+        identity = _identity(saved, self.profile, history=False, game_modes=self.game_modes)
         acts, index = saved.get("acts"), saved.get("current_act_index")
         visited = saved.get("visited_map_coords")
         if (identity is None or not isinstance(acts, list) or type(index) is not int
@@ -149,7 +151,7 @@ class SteamRunEvidence:
             return None
         source_path = self.saves / "history" / f"{identity.start_time}.run"
         saved = _read_save(source_path)
-        if _identity(saved, self.profile, history=True) != identity:
+        if _identity(saved, self.profile, history=True, game_modes=self.game_modes) != identity:
             return None
         win, abandoned = saved.get("win"), saved.get("was_abandoned")
         history, build = saved.get("map_point_history"), saved.get("build_id")

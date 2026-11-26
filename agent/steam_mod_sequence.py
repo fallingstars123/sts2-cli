@@ -4,6 +4,8 @@ from collections import Counter, deque
 from dataclasses import dataclass, replace
 import re
 
+from steam_mod_tactics import arrow_state, is_shot
+
 
 MAX_CHOICES = 6
 CARD_TARGETS = {"AnyEnemy", "AllEnemies", "Self", "None", "AnyPlayer"}
@@ -109,6 +111,7 @@ class Move:
     target_type: str | None = None
     x_cost: bool = False
     needs_replan: bool = False
+    shot: bool = False          # needs an available Arrow; does nothing without one
 
     @property
     def resource(self):
@@ -182,7 +185,14 @@ def _move(view, action):
     if x_cost and (energy == 0 or energy != view.state["energy"]):
         return None
     return Move(kind, card["instance_id"], model, target, energy, max(0, stars), card.get("upgrade"),
-                target_type, x_cost=x_cost, needs_replan=needs_replan)
+                target_type, x_cost=x_cost, needs_replan=needs_replan,
+                shot=is_shot(card.get("description")) or is_shot(detail.get("description")))
+
+
+def _arrows(view):
+    """Available Arrows in this view, or None when Arrows are not tracked."""
+    state = arrow_state(view.state)
+    return None if state is None else state["available"]
 
 
 def can_plan(snapshot):
@@ -315,6 +325,11 @@ class CombatSequence:
         energy -= primary.energy
         stars -= primary.stars
         used = {primary.resource}
+        # A planned Shoot needs an Arrow left after the earlier shots; hits that would dislodge an
+        # impaled Arrow are not credited, so the plan stops and the model replans from live state.
+        arrows = _arrows(view)
+        if primary.shot and arrows is not None:
+            arrows -= 1
         later = choices[1:MAX_CHOICES]
         for position, choice in enumerate(later):
             if (position == len(later) - 1 and type(choice) is int and 1 <= choice <= len(view.actions)
@@ -324,6 +339,10 @@ class CombatSequence:
             move = _choice(view, choice)
             if move is None or move.resource in used or not move.affordable(energy, stars):
                 break
+            if move.shot and arrows is not None:
+                if arrows <= 0:
+                    break
+                arrows -= 1
             self._pending.append(replace(move, energy=energy) if move.x_cost else move)
             if not move.can_continue:
                 break
@@ -345,7 +364,8 @@ class CombatSequence:
                 matches = [index for index, action in enumerate(view.actions, 1) if _is_end_turn(action)]
             else:
                 matches = [index for index, action in enumerate(view.actions, 1) if _move(view, action) == expected]
-            if len(matches) == 1 and expected.affordable(view.state["energy"], view.state["stars"]):
+            dead_shot = expected.shot and _arrows(view) == 0
+            if len(matches) == 1 and not dead_shot and expected.affordable(view.state["energy"], view.state["stars"]):
                 self._pending.popleft()
                 self._ready_state = None
                 self._in_flight = (view.state_id, expected)

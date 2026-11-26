@@ -33,7 +33,7 @@ internal static class RoomRetry
 
     private sealed record Request(RunState Original, int Profile, string Seed, int Act, int Floor,
         string Character, int Ascension, MapCoord Coord, Kind Kind, string RoomId, long StartTime,
-        int PriorCount, long Started, Phase Phase, string CheckpointHash);
+        int PriorCount, long Started, Phase Phase, string CheckpointHash, bool Resume = true);
     private sealed record FailedAttempt(RunState? Run, AbstractRoom? Room, int? Floor, int? Profile, string Reason);
 
     private static Request? _pending;
@@ -75,13 +75,13 @@ internal static class RoomRetry
     internal static bool CombatAvailable(RunState run) => Available(run) &&
         run.CurrentRoom is CombatRoom { IsPreFinished: false, ParentEventId: null };
 
-    internal static bool BeginCombat(RunState run, string encounter)
+    internal static bool BeginCombat(RunState run, string encounter, bool resume = true)
     {
         if (!CombatAvailable(run) || ReadPrimaryCheckpoint() is not { } saved)
             return false;
 
         var request = Prepare(run, Kind.Combat, encounter, saved);
-        return request is not null && Begin(request);
+        return request is not null && Begin(request with { Resume = resume });
     }
 
     internal static LiveAction? EventAction(RunState run, NEventRoom screen, string eventId)
@@ -181,14 +181,20 @@ internal static class RoomRetry
                     }
                     break;
                 case Phase.Menu:
-                    if (game.MainMenu is { } menu && ActiveScreenContext.Instance.IsCurrent(menu) &&
-                        menu.GetNodeOrNull<NMainMenuTextButton>("MainMenuTextButtons/ContinueButton") is { } resume && Usable(resume))
+                    if (game.MainMenu is not { } menu || !ActiveScreenContext.Instance.IsCurrent(menu))
+                        break;
+                    if (!CheckpointStillMatches(request))
                     {
-                        if (!CheckpointStillMatches(request))
-                        {
-                            Fail("The native checkpoint changed before Continue.");
-                            return;
-                        }
+                        Fail("The native checkpoint changed after Save and Quit.");
+                        return;
+                    }
+                    if (!request.Resume)
+                    {
+                        _pending = null;
+                        return;
+                    }
+                    if (menu.GetNodeOrNull<NMainMenuTextButton>("MainMenuTextButtons/ContinueButton") is { } resume && Usable(resume))
+                    {
                         _pending = request with { Phase = Phase.Room };
                         resume.ForceClick();
                     }
@@ -260,8 +266,10 @@ internal static class RoomRetry
     private static int? CurrentProfile() => SaveManager.Instance is { IsProfileInitialized: true } saves
         ? saves.CurrentProfileId : null;
 
-    private static bool MatchesLiveStart(long startTime) =>
-        RunStartTime?.GetValue(RunManager.Instance) is long liveStart && liveStart == startTime;
+    internal static long? LiveStartTime() =>
+        RunStartTime?.GetValue(RunManager.Instance) is long startTime && startTime > 0 ? startTime : null;
+
+    private static bool MatchesLiveStart(long startTime) => LiveStartTime() == startTime;
 
     // Inspect the primary save without invoking the game's recovery or repair machinery.
     private static (SerializableRun Save, string Hash)? ReadPrimaryCheckpoint()

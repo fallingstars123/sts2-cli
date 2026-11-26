@@ -265,7 +265,7 @@ def decision_context(snapshot, *, include_deck):
     for section in ("state", "run"):
         if isinstance(context.get(section), dict):
             context[section] = {key: value for key, value in context[section].items()
-                                if key not in {"profile", "seed", "start_time"}}
+                                if key not in {"profile", "seed", "start_time", "run_instance"}}
     state = context.get("state") or {}
     run = context.get("run") or {}
     if not include_deck:

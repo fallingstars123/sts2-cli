@@ -179,7 +179,7 @@ def replay(session, agent, workdir, *, planned_end_turn=False):
     from steam_mod_memory import SteamModMemory          # resolved from the loaded agent directory
     from steam_mod_experience import Experience
     from steam_mod_sequence import CombatSequence, can_plan
-    from steam_mod_shop import shop_actions
+    from steam_mod_shop import item_actions
 
     rows = _journal(session)
     supports = inspect.signature(agent.choose).parameters
@@ -200,7 +200,10 @@ def replay(session, agent, workdir, *, planned_end_turn=False):
         nonlocal serial
         serial += 1
         keys = ("screen", "state", "run", "actions")
-        return {**{key: row.get(key) for key in keys}, "state_id": f"replay-{label}:{serial}:x"}
+        view = {**{key: row.get(key) for key in keys}, "state_id": f"replay-{label}:{serial}:x"}
+        if "combat_selection" in row:
+            view["combat_selection"] = row["combat_selection"]
+        return view
 
     for index, row in enumerate(rows):
         if row["type"] in {"start", "observed", "state_changed", "combat_retry_completed"} and row.get("actions") is not None:
@@ -209,31 +212,54 @@ def replay(session, agent, workdir, *, planned_end_turn=False):
             states[index] = current
     recent = deque(maxlen=5)
     sequence = CombatSequence()
+    reward_progress = agent.RewardProgress() if hasattr(agent, "RewardProgress") else None
     reviewed_turn, reviewed = None, set()
     for position, index in enumerate(decisions):
         row, state = rows[index], states[index]
         taken = row["action"]
         usage = row.get("usage") or {}
         run = state.get("run") or {}
-        turn_key = (run.get("act"), run.get("floor"), (state.get("state") or {}).get("turn"))
+        selection = state.get("combat_selection") or {}
+        turn_key = (run.get("act"), run.get("floor"), selection.get("turn", (state.get("state") or {}).get("turn")))
         notes = memory.context(state)
         if encounter := experience.observe(state):
             notes = {**(notes or {}), "encounter_experience": encounter}
-        offered = {**state, "actions": shop_actions(state)}
+        arrow_filter = getattr(agent, "arrow_ready_actions", None)
+        actions = arrow_filter(state) if arrow_filter and state["screen"] == "combat" else item_actions(state)
+        if reward_progress is not None:
+            actions = reward_progress.available(state, actions)
+        replacement_filter = getattr(agent, "_hand_replacement_actions", None)
+        if replacement_filter and state["screen"] == "card_selection":
+            actions = replacement_filter(state, actions, recent)
+        offered = {**state, "actions": actions}
         retry_kinds = {agent.COMBAT_RETRY, agent.EVENT_RETRY}
         offered["actions"] = [action for action in offered["actions"]
-                              if action["kind"] not in retry_kinds or action["id"] == taken["id"]]
+                              if action["kind"] != getattr(agent, "COMBAT_SAVE_AND_QUIT", None)
+                              and (action["kind"] not in retry_kinds or action["id"] == taken["id"])]
         numbers = {action["id"]: number for number, action in enumerate(offered["actions"], 1)}
         if reviewed_turn != turn_key:
             reviewed_turn, reviewed = turn_key, set()
         record = {"session": label, "index": position, "screen": state["screen"], "time": _time(row),
                   "archived": usage, "taken": taken["kind"], "requests": [], "agreed": True}
         before = len(fake.requests)
-        forced = getattr(agent, "_forced_action", lambda _s: None)(offered)
+        forced_action = getattr(agent, "_forced_action", lambda _s: None)
+        forced = (forced_action(offered, skipped_rewards=reward_progress.skipped)
+                  if reward_progress is not None else forced_action(offered))
         confirm = getattr(agent, "_completed_hand_selection", lambda _s, _r: None)(offered, recent)
-        if forced is not None:
+        potion = getattr(agent, "potion_reward_action", lambda _s: None)(state)
+        leave_shop = getattr(agent, "shop_exit_action", lambda _s, _r: None)(offered, recent)
+        if leave_shop is not None:
+            record["resolution"] = "local_shop_exit"
+            chosen = leave_shop["id"]
+            record["agreed"] = chosen == taken["id"]
+        elif potion is not None:
+            record["resolution"] = "local_potion_reward"
+            chosen = potion["id"]
+            record["agreed"] = chosen == taken["id"]
+        elif forced is not None:
             record["resolution"] = "local_forced"
             chosen = forced["id"]
+            record["agreed"] = chosen == taken["id"]
         elif confirm is not None:
             record["resolution"] = "local_confirm"
             chosen = confirm["id"]
@@ -273,7 +299,13 @@ def replay(session, agent, workdir, *, planned_end_turn=False):
                 options["reference"] = reference
             chosen, _strategy, result = agent.choose(client, offered, recent, "", notes,
                                                      reviewed_hazards=frozenset(reviewed), **options)
-            reviewed.update(key for key in result if key.startswith("rechecked_"))
+            if review_state := result.get("end_turn_review_state"):
+                reviewed.add("end_turn_reviewed:" + review_state)
+            # Like play(): a recheck is used up only when the game accepted the resulting action.
+            # Older agents (no _turn_state_key) used a recheck up as soon as it was asked.
+            if (not hasattr(agent, "_turn_state_key")
+                    or index + 1 < len(rows) and rows[index + 1]["type"] == "accepted"):
+                reviewed.update(key for key in result if key.startswith("rechecked_"))
             record["resolution"] = ("local_end_turn" if "local_end_turn" in result and len(fake.requests) == before
                                     else "reused_turn_plan" if "reused_turn_plan" in result
                                     else "local_guard" if "end_turn_guard" in result and len(fake.requests) == before
@@ -291,11 +323,15 @@ def replay(session, agent, workdir, *, planned_end_turn=False):
             continue
         after = states.get(decisions[position + 1]) if position + 1 < len(decisions) else snapshot(after_row)
         sequence.advance(state, action, after)
+        if reward_progress is not None:
+            reward_progress.advance(state, action, after)
         experience.acted(action)
         experience.settle(after)
         memory.record(state, action, after, plan="")
         detail = action["detail"]
         item = detail.get("card_id") or detail.get("potion_id") or detail.get("target") or action["id"]
+        if action["kind"] == "buy_shop_item" and detail.get("type") == "card_removal":
+            item = "card_removal"
         target = detail.get("target_index")
         recent.append(f"{action['kind']} {item}" + (f" at enemy index {target}" if type(target) is int else ""))
 

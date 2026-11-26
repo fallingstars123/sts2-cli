@@ -14,7 +14,7 @@ from time import monotonic
 HELPERS = str(Path(__file__).resolve().parents[1] / "python")
 if HELPERS not in sys.path:
     sys.path.insert(0, HELPERS)
-from steam_progress import SteamProgressError, SteamRunEvidence
+from steam_progress import RunIdentity, SteamProgressError, SteamRunEvidence
 
 
 MAX_CONTEXT_BYTES = 480
@@ -26,6 +26,8 @@ CHECKPOINT_INTERVAL = 2.0
 
 
 class _ModdedEvidence(SteamRunEvidence):
+    game_modes = frozenset({"standard", "daily"})
+
     def __init__(self, profile):
         account = SteamRunEvidence(profile)
         super().__init__(profile, account_root=account.account_root / "modded")
@@ -206,14 +208,16 @@ class SteamModMemory:
         try:
             if self.reader is None:
                 self.reader = _ModdedEvidence(profile)
-            checkpoint = self.reader.read_current()
+            visible_ascension = _run(state).get("ascension")
+            if visible_start is not None and type(visible_ascension) is int and visible_ascension >= 0:
+                native = RunIdentity(profile, visible_start, seed, character, visible_ascension)
+            else:
+                checkpoint = self.reader.read_current()
+                if checkpoint is None:
+                    return True
+                native = checkpoint.identity
         except (OSError, SteamProgressError):
             return True
-        if checkpoint is None:
-            return True
-        native = checkpoint.identity
-        run = _run(state)
-        visible_ascension = run.get("ascension")
         if (native.profile != profile or native.seed != seed or native.character != character
                 or (visible_start is not None and native.start_time != visible_start)
                 or (type(visible_ascension) is int and native.ascension != visible_ascension)):
@@ -221,6 +225,10 @@ class SteamModMemory:
         if native != self.identity:
             self._bind(native)
         return True
+
+    def reset_branch(self):
+        self.plan, self.notes, self.route_map = "", [], None
+        self._save()
 
     def _bind(self, identity):
         if self.identity is not None:

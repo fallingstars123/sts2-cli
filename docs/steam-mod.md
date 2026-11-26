@@ -2,12 +2,12 @@
 
 [简体中文](#简体中文)
 
-STS2 Live Bridge connects the Windows launcher to the active standard Steam single-player run. It reads structured game state and executes native game actions through a local named pipe. The game plays its normal animations and can stay behind the launcher.
+STS2 Live Bridge connects the Windows launcher to the active standard or daily Steam single-player run. It reads structured game state and executes native game actions through a local named pipe. The game plays its normal animations and can stay behind the launcher.
 
 ## Start a full run
 
 1. Copy the `Sts2LiveBridge` folder into the Steam game's `mods` directory. It contains the bridge DLL and JSON manifest. If you have a source checkout, build it using the command below.
-2. Restart the game, enable **STS2 Live Bridge** in its mod settings, and open or continue a standard single-player run.
+2. Restart the game, enable **STS2 Live Bridge** in its mod settings, and open or continue a standard or daily single-player run.
 3. Save a DeepSeek or Claude key under **API settings**, then choose the persona and select **AI play → Steam Full Run**. The model takes over from the current screen, using the character and ascension already active in Steam.
 
 Use **Run history** to follow recorded rooms, health, inventory, route, and decisions. The agent stops at the native run result, an unsupported state, or its action limit. Press **Ctrl+C** in the console to stop it earlier. The provider may bill API requests. Keys are managed by the launcher.
@@ -29,12 +29,12 @@ Copy `Sts2LiveBridge.dll` and `Sts2LiveBridge.json` from `src/Sts2LiveBridge/bin
 
 ## 简体中文
 
-STS2 Live Bridge 将 Windows 启动器接到当前 Steam 标准单人对局。它通过本机命名管道读取结构化游戏状态、执行游戏原生动作。游戏会照常播放动画，也可以留在启动器后面。
+STS2 Live Bridge 将 Windows 启动器接到当前 Steam 标准单人对局或每日挑战。它通过本机命名管道读取结构化游戏状态、执行游戏原生动作。游戏会照常播放动画，也可以留在启动器后面。
 
 ### 启动整局托管
 
 1. 把包含桥接 DLL 和 JSON 清单的 `Sts2LiveBridge` 文件夹放到 Steam 游戏目录的 `mods` 下。从源码安装时，按下面的命令构建。
-2. 重启游戏，在 Mod 设置里启用 **STS2 Live Bridge**，然后开始或继续一局标准单人对局。
+2. 重启游戏，在 Mod 设置里启用 **STS2 Live Bridge**，然后开始或继续一局标准单人对局或每日挑战。
 3. 在启动器的 **API 设置** 保存 DeepSeek 或 Claude 密钥，选好人物后点 **AI 游玩 → Steam 整局托管**。AI 从当前画面接手，角色和进阶以 Steam 已打开的对局为准。
 
 在 **对局记录** 可跟踪房间、血量、牌组、地图和 AI 决策。对局结算、遇到未支持的界面或达到操作上限时会停止。要提前停止，在控制台按 **Ctrl+C**。API 调用可能计费，密钥由启动器管理。

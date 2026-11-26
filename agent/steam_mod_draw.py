@@ -8,9 +8,15 @@ import re
 FIXED_DRAW_CARDS = frozenset({
     "ACROBATICS", "BACKFLIP", "BATTLE_TRANCE", "DAGGER_THROW",
     "POMMEL_STRIKE", "QUICK_SLASH", "SHRUG_IT_OFF",
+    "DECISIONS_DECISIONS", "GLIMMER", "GLOW", "PHOTON_CUT",
 })
 CATEGORIES = ("block", "damage", "mitigation", "any")
 MAX_HAND = 10
+POTIONS_REQUIRING_HAND_SPACE = frozenset({
+    "ATTACK_POTION", "COLORLESS_POTION", "COSMIC_CONCOCTION", "CUNNING_POTION",
+    "DROPLET_OF_PRECOGNITION", "LIQUID_MEMORIES", "OROBIC_ACID", "POT_OF_GHOULS",
+    "POWER_POTION", "SKILL_POTION", "SWIFT_POTION",
+})
 MAX_PILE = 2048
 TAGS = re.compile(r"\[[^\[\]\r\n]{1,80}\]")
 DRAW = re.compile(r"^(?:Draw ([1-9][0-9]?) cards?\.|抽([1-9][0-9]?)张牌。)$", re.IGNORECASE | re.MULTILINE)

@@ -11,6 +11,29 @@ import steam_mod_agent as agent  # noqa: E402
 from steam_mod_experience import Experience  # noqa: E402
 
 
+def test_post_fight_review_records_usage_even_when_it_returns_no_lesson():
+    usage = SimpleNamespace(input_tokens=100, output_tokens=25, cache_read_input_tokens=50,
+                            cache_creation_input_tokens=10)
+    response = SimpleNamespace(usage=usage, stop_reason="max_tokens", content=[])
+    claude = agent.ClaudeDecisions(SimpleNamespace(messages=SimpleNamespace(create=lambda **kwargs: response)), "test")
+    recorded = []
+    assert agent.request_review(claude, "Review", "{}", record_usage=recorded.append) == ""
+    assert recorded == [{
+        "prompt_tokens": 100, "completion_tokens": 25, "prompt_cache_hit_tokens": 50,
+        "prompt_cache_miss_tokens": 110, "prompt_cache_write_tokens": 10,
+    }]
+
+    response = SimpleNamespace(
+        usage=SimpleNamespace(prompt_tokens=100, completion_tokens=12, prompt_cache_hit_tokens=40,
+                              prompt_cache_miss_tokens=60),
+        choices=[SimpleNamespace(finish_reason="stop", message=SimpleNamespace(content='{"lessons":[]}'))],
+    )
+    deepseek = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=lambda **kwargs: response)))
+    assert agent.request_review(deepseek, "Review", "{}", record_usage=recorded.append) == '{"lessons":[]}'
+    assert recorded[-1] == {"prompt_tokens": 100, "completion_tokens": 12, "prompt_cache_hit_tokens": 40,
+                            "prompt_cache_miss_tokens": 60}
+
+
 def combat(turn, hp, *, encounter="SPINY_TOAD_NORMAL", seed="SEED", floor=27, attack=23, powers=()):
     return {"screen": "combat", "run": {"seed": seed, "act": 2, "floor": floor, "hp": hp, "max_hp": 100,
                                         "character": "CHARACTER.SILENT"},
